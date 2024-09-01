@@ -57,7 +57,7 @@
             Controls.Add(flowLayoutPanel2);
             Controls.Add(flowLayoutPanel1);
             Name = "Form1";
-            Text = "Form1";
+            Text = "MigTransfer";
             ResumeLayout(false);
         }
 
