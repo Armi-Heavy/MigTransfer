@@ -8,12 +8,15 @@ namespace MigTransfer
     public partial class Form1 : Form
     {
         private ImageLoader imageLoader;
+        private ExFatDriveDetector exFatDriveDetector;
 
         public Form1()
         {
             InitializeComponent();
             imageLoader = new ImageLoader();
+            exFatDriveDetector = new ExFatDriveDetector();
             LoadImagesToFlowLayoutPanel();
+            LoadExFatDrivesToFlowLayoutPanel();
             this.Resize += new EventHandler(Form1_Resize);
         }
 
@@ -25,6 +28,17 @@ namespace MigTransfer
             {
                 ImageItem imageItem = new ImageItem(image);
                 flowLayoutPanel1.Controls.Add(imageItem);
+            }
+        }
+
+        private void LoadExFatDrivesToFlowLayoutPanel()
+        {
+            var exFatDrives = exFatDriveDetector.GetExFatDrives();
+            flowLayoutPanel2.Controls.Clear();
+            foreach (var drive in exFatDrives)
+            {
+                Panel panel = exFatDriveDetector.CreateDrivePanel(drive, flowLayoutPanel2.Width);
+                flowLayoutPanel2.Controls.Add(panel);
             }
         }
 

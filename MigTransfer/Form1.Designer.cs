@@ -38,22 +38,22 @@
             flowLayoutPanel1.Dock = DockStyle.Left;
             flowLayoutPanel1.Location = new Point(0, 0);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(1090, 844);
+            flowLayoutPanel1.Size = new Size(1086, 864);
             flowLayoutPanel1.TabIndex = 0;
             // 
             // flowLayoutPanel2
             // 
             flowLayoutPanel2.Dock = DockStyle.Right;
-            flowLayoutPanel2.Location = new Point(1096, 0);
+            flowLayoutPanel2.Location = new Point(1104, 0);
             flowLayoutPanel2.Name = "flowLayoutPanel2";
-            flowLayoutPanel2.Size = new Size(262, 844);
+            flowLayoutPanel2.Size = new Size(254, 864);
             flowLayoutPanel2.TabIndex = 1;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1358, 844);
+            ClientSize = new Size(1358, 864);
             Controls.Add(flowLayoutPanel2);
             Controls.Add(flowLayoutPanel1);
             Name = "Form1";
