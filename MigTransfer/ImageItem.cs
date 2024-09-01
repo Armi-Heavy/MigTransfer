@@ -56,7 +56,7 @@ namespace MigTransfer
             {
                 if (checkBox.Checked)
                 {
-                    pictureBox.Image = ChangeImageOpacity(originalImage, 0.5f);
+                    pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
                 }
                 else
                 {
@@ -65,16 +65,23 @@ namespace MigTransfer
             };
         }
 
-        private Image ChangeImageOpacity(Image image, float opacity)
+        private Image ChangeImageBrightness(Image image, float brightness)
         {
             Bitmap bmp = new Bitmap(image.Width, image.Height);
             using (Graphics gfx = Graphics.FromImage(bmp))
             {
-                ColorMatrix matrix = new ColorMatrix();
-                matrix.Matrix33 = opacity;
-                ImageAttributes attributes = new ImageAttributes();
-                attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-                gfx.DrawImage(image, new Rectangle(0, 0, bmp.Width, bmp.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, attributes);
+                float[][] ptsArray = {
+                    new float[] {1, 0, 0, 0, 0},
+                    new float[] {0, 1, 0, 0, 0},
+                    new float[] {0, 0, 1, 0, 0},
+                    new float[] {0, 0, 0, 1, 0},
+                    new float[] {brightness, brightness, brightness, 0, 2}
+                };
+
+                ColorMatrix clrMatrix = new ColorMatrix(ptsArray);
+                ImageAttributes imgAttributes = new ImageAttributes();
+                imgAttributes.SetColorMatrix(clrMatrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+                gfx.DrawImage(image, new Rectangle(0, 0, bmp.Width, bmp.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, imgAttributes);
             }
             return bmp;
         }
