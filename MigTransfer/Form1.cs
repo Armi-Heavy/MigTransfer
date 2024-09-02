@@ -44,6 +44,10 @@ namespace MigTransfer
             {
                 Panel panel = exFatDriveDetector.CreateDrivePanel(drive, flowLayoutPanel2.Width);
                 panel.Click += (s, e) => SetActiveDrive(drive, panel);
+                foreach (Control control in panel.Controls)
+                {
+                    control.Click += (s, e) => SetActiveDrive(drive, panel);
+                }
                 flowLayoutPanel2.Controls.Add(panel);
             }
         }

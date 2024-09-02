@@ -115,7 +115,19 @@ public class ExFatDriveDetector
         panel.Controls.Add(label);
         panel.Controls.Add(sizeLabel);
 
+        // Añadir el evento Click a todos los controles del panel
+        panel.Click += (s, e) => OnPanelClick(drive, panel);
+        pictureBox.Click += (s, e) => OnPanelClick(drive, panel);
+        progressBar.Click += (s, e) => OnPanelClick(drive, panel);
+        label.Click += (s, e) => OnPanelClick(drive, panel);
+        sizeLabel.Click += (s, e) => OnPanelClick(drive, panel);
+
         return panel;
+    }
+
+    private void OnPanelClick(DriveInfo drive, Panel panel)
+    {
+        DrivesChanged?.Invoke(drive, EventArgs.Empty);
     }
 
     private void OnUsbChanged(object sender, EventArgs e)
