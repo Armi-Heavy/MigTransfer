@@ -10,15 +10,18 @@ namespace MigTransfer
     {
         private PictureBox pictureBox;
         private CheckBox checkBox;
-        private ProgressBar progressBar; // Añadir esta línea
+        private ProgressBar progressBar;
         private Image originalImage;
-        private string imagePath; // Añadir esta línea
-        private Form1 form; // Añadir esta línea
+        private string imagePath;
+        private Form1 form;
+        private bool fromComparison = false; // Añadir esta línea
 
-        public ImageItem(Image image, string imagePath, Form1 form) // Modificar el constructor
+        public string ImagePath => imagePath; // Propiedad para acceder a imagePath
+
+        public ImageItem(Image image, string imagePath, Form1 form)
         {
-            this.imagePath = imagePath; // Añadir esta línea
-            this.form = form; // Añadir esta línea
+            this.imagePath = imagePath;
+            this.form = form;
             originalImage = image;
             InitializeComponents(image);
         }
@@ -42,7 +45,7 @@ namespace MigTransfer
                 Visible = false
             };
 
-            progressBar = new ProgressBar // Añadir esta sección
+            progressBar = new ProgressBar
             {
                 Location = new Point(10, this.Height - 30),
                 Width = this.Width - 20,
@@ -52,7 +55,7 @@ namespace MigTransfer
 
             this.Controls.Add(pictureBox);
             this.Controls.Add(checkBox);
-            this.Controls.Add(progressBar); // Añadir esta línea
+            this.Controls.Add(progressBar);
 
             checkBox.BringToFront();
 
@@ -63,24 +66,26 @@ namespace MigTransfer
 
             pictureBox.Click += (s, e) => checkBox.Checked = !checkBox.Checked;
 
-            checkBox.CheckedChanged += (s, e) =>
+            checkBox.CheckedChanged += async (s, e) =>
             {
                 if (checkBox.Checked)
                 {
-                    DriveInfo activeDrive = form.GetActiveDrive(); // Obtener el disco activo
+                    if (fromComparison) return; // Añadir esta línea
+
+                    DriveInfo activeDrive = form.GetActiveDrive();
                     if (activeDrive == null)
                     {
                         MessageBox.Show("Por favor, seleccione un dispositivo donde copiar los archivos antes de continuar.", "Dispositivo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        checkBox.Checked = false; // Desmarcar el checkbox
+                        checkBox.Checked = false;
                         return;
                     }
 
                     pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
-                    progressBar.Visible = true; // Mostrar la barra de progreso
-                    progressBar.BringToFront(); // Traer la barra de progreso al frente
+                    progressBar.Visible = true;
+                    progressBar.BringToFront();
 
                     string directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
-                    string destinationDirectory = Path.Combine(activeDrive.RootDirectory.FullName, directoryName);
+                    string destinationDirectory = activeDrive.RootDirectory.FullName;
 
                     FileCopyManager fileCopyManager = new FileCopyManager();
                     fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
@@ -88,9 +93,47 @@ namespace MigTransfer
                 else
                 {
                     pictureBox.Image = originalImage;
-                    progressBar.Visible = false; // Ocultar la barra de progreso
+                    progressBar.Visible = false;
+
+                    DriveInfo activeDrive = form.GetActiveDrive();
+                    if (activeDrive != null)
+                    {
+                        string directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                        string destinationDirectory = Path.Combine(activeDrive.RootDirectory.FullName, directoryName);
+
+                        if (Directory.Exists(destinationDirectory))
+                        {
+                            try
+                            {
+                                Directory.Delete(destinationDirectory, true);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Error al borrar el directorio '{destinationDirectory}': {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                    }
                 }
             };
+        }
+
+        public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
+        {
+            this.fromComparison = fromComparison; // Añadir esta línea
+            checkBox.CheckedChanged -= CheckBox_CheckedChanged;
+            checkBox.Checked = isChecked;
+            if (isChecked && fromComparison)
+            {
+                progressBar.Visible = true;
+                progressBar.Value = 100;
+                pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
+            }
+            checkBox.CheckedChanged += CheckBox_CheckedChanged;
+        }
+
+        private void CheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            // Implementar la lógica de CheckedChanged aquí si es necesario
         }
 
         private Image ChangeImageBrightness(Image image, float brightness)

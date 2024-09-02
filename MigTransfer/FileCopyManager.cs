@@ -61,7 +61,10 @@ public class FileCopyManager
         }
 
         string destinationFolder = Path.Combine(destinationDirectory, baseDirectoryName);
-        Directory.CreateDirectory(destinationFolder);
+        if (!Directory.Exists(destinationFolder))
+        {
+            Directory.CreateDirectory(destinationFolder);
+        }
 
         long copiedSize = 0;
         foreach (var file in files)
