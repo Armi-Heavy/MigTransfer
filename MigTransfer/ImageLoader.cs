@@ -1,20 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace MigTransfer
 {
     public class ImageLoader
     {
-        public List<Image> LoadImages()
+        public List<string> LoadImagePaths()
         {
-            List<Image> images = new List<Image>();
+            List<string> imagePaths = new List<string>();
             string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            //string switchFolderPath = Path.Combine(userFolderPath, "ownCloud", "Switch");
-            string switchFolderPath = Path.Combine(userFolderPath, "Test", "Switch");
+            string switchFolderPath = Path.Combine(userFolderPath, "ownCloud", "Switch");
+            //string switchFolderPath = Path.Combine(userFolderPath, "Test", "Switch");
 
             if (Directory.Exists(switchFolderPath))
             {
@@ -25,14 +22,12 @@ namespace MigTransfer
                     string imagePath = Path.Combine(directory, "Cover.jpg");
                     if (File.Exists(imagePath))
                     {
-                        Image image = Image.FromFile(imagePath);
-                        Image resizedImage = new Bitmap(image, new Size(256, 414));
-                        images.Add(resizedImage);
+                        imagePaths.Add(imagePath);
                     }
                 }
             }
 
-            return images;
+            return imagePaths;
         }
     }
 }

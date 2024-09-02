@@ -26,6 +26,17 @@ public class ExFatDriveDetector
     public const uint SHGFI_LARGEICON = 0x000000000; // Large icon
     public const uint SHGFI_SMALLICON = 0x000000001; // Small icon
 
+    private UsbEventWatcher usbEventWatcher;
+
+    public event EventHandler DrivesChanged;
+
+    public ExFatDriveDetector()
+    {
+        usbEventWatcher = new UsbEventWatcher();
+        usbEventWatcher.UsbInserted += OnUsbChanged;
+        usbEventWatcher.UsbRemoved += OnUsbChanged;
+    }
+
     public List<DriveInfo> GetExFatDrives()
     {
         List<DriveInfo> exFatDrives = new List<DriveInfo>();
@@ -105,5 +116,15 @@ public class ExFatDriveDetector
         panel.Controls.Add(sizeLabel);
 
         return panel;
+    }
+
+    private void OnUsbChanged(object sender, EventArgs e)
+    {
+        DrivesChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void StopWatcher()
+    {
+        usbEventWatcher.Stop();
     }
 }
