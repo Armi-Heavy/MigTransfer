@@ -126,6 +126,7 @@ namespace MigTransfer
             {
                 progressBar.Visible = true;
                 progressBar.Value = 100;
+                progressBar.BringToFront(); // Añadir esta línea
                 pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
             }
             checkBox.CheckedChanged += CheckBox_CheckedChanged;
