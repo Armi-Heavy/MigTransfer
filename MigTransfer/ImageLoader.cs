@@ -11,7 +11,6 @@ namespace MigTransfer
             List<string> imagePaths = new List<string>();
             string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             string switchFolderPath = Path.Combine(userFolderPath, "ownCloud", "Switch");
-            //string switchFolderPath = Path.Combine(userFolderPath, "Test", "Switch");
 
             if (Directory.Exists(switchFolderPath))
             {

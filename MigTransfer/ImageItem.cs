@@ -59,9 +59,9 @@ namespace MigTransfer
 
             checkBox.BringToFront();
 
-            pictureBox.MouseEnter += (s, e) => checkBox.Visible = true;
+            pictureBox.MouseEnter += (s, e) => checkBox.Visible = false;
             pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
-            checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
+            checkBox.MouseEnter += (s, e) => checkBox.Visible = false;
             checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
 
             pictureBox.Click += (s, e) => checkBox.Checked = !checkBox.Checked;
@@ -147,7 +147,7 @@ namespace MigTransfer
                     new float[] {0, 1, 0, 0, 0},
                     new float[] {0, 0, 1, 0, 0},
                     new float[] {0, 0, 0, 1, 0},
-                    new float[] {brightness, brightness, brightness, 0, 2}
+                    new float[] {brightness, brightness, brightness, 0, 1}
                 };
 
                 ColorMatrix clrMatrix = new ColorMatrix(ptsArray);
