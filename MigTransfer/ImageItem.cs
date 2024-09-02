@@ -14,7 +14,7 @@ namespace MigTransfer
         private Image originalImage;
         private string imagePath;
         private Form1 form;
-        private bool fromComparison = false; // Añadir esta línea
+        private bool fromComparison = false;
 
         public string ImagePath => imagePath; // Propiedad para acceder a imagePath
 
@@ -70,7 +70,7 @@ namespace MigTransfer
             {
                 if (checkBox.Checked)
                 {
-                    if (fromComparison) return; // Añadir esta línea
+                    if (fromComparison) return;
 
                     DriveInfo activeDrive = form.GetActiveDrive();
                     if (activeDrive == null)
@@ -119,14 +119,14 @@ namespace MigTransfer
 
         public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
         {
-            this.fromComparison = fromComparison; // Añadir esta línea
+            this.fromComparison = fromComparison;
             checkBox.CheckedChanged -= CheckBox_CheckedChanged;
             checkBox.Checked = isChecked;
             if (isChecked && fromComparison)
             {
                 progressBar.Visible = true;
                 progressBar.Value = 100;
-                progressBar.BringToFront(); // Añadir esta línea
+                progressBar.BringToFront();
                 pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
             }
             checkBox.CheckedChanged += CheckBox_CheckedChanged;

@@ -16,10 +16,14 @@ public class CustomProgressBar : ProgressBar
 
         ProgressBarRenderer.DrawHorizontalBar(g, rect);
         rect.Inflate(-3, -3);
+
         if (this.Value > 0)
         {
-            Rectangle clip = new Rectangle(rect.X, rect.Y, (int)(rect.Width * ((double)this.Value / this.Maximum)), rect.Height);
-            g.FillRectangle(new SolidBrush(Color.FromArgb(0, 120, 212)), clip); // Usar el color azul
+            Rectangle clip = new Rectangle(rect.X, rect.Y, (int)Math.Round((float)this.Value / this.Maximum * rect.Width), rect.Height);
+            using (SolidBrush brush = new SolidBrush(this.ForeColor))
+            {
+                g.FillRectangle(brush, clip);
+            }
         }
     }
 }
