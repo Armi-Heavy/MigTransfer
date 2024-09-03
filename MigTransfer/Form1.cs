@@ -18,11 +18,12 @@ namespace MigTransfer
             InitializeComponent();
             imageLoader = new ImageLoader();
             exFatDriveDetector = new ExFatDriveDetector();
-            exFatDriveDetector.DrivesChanged += OnDrivesChanged;
+            // Eliminar la suscripción al evento DrivesChanged
             LoadImagesToFlowLayoutPanel();
             LoadExFatDrivesToFlowLayoutPanel();
             this.Resize += new EventHandler(Form1_Resize);
         }
+
 
         private void LoadImagesToFlowLayoutPanel()
         {

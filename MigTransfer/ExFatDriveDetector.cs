@@ -26,22 +26,11 @@ public class ExFatDriveDetector
     public const uint SHGFI_LARGEICON = 0x000000000; // Large icon
     public const uint SHGFI_SMALLICON = 0x000000001; // Small icon
 
-    private UsbEventWatcher usbEventWatcher;
-
     public event EventHandler DrivesChanged;
 
     public ExFatDriveDetector()
     {
-        try
-        {
-            usbEventWatcher = new UsbEventWatcher();
-            usbEventWatcher.UsbInserted += OnUsbChanged;
-            usbEventWatcher.UsbRemoved += OnUsbChanged;
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error al configurar los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        // Eliminar el código relacionado con UsbEventWatcher
     }
 
     public List<DriveInfo> GetExFatDrives()
@@ -140,21 +129,9 @@ public class ExFatDriveDetector
         DrivesChanged?.Invoke(drive, EventArgs.Empty);
     }
 
-    private void OnUsbChanged(object sender, EventArgs e)
-    {
-        DrivesChanged?.Invoke(this, EventArgs.Empty);
-    }
-
     public void StopWatcher()
     {
-        try
-        {
-            usbEventWatcher.Stop();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error al detener los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
+        // Eliminar el código relacionado con UsbEventWatcher
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
