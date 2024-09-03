@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 public class FileCopyManager
 {
-    public event EventHandler CopyCompleted; // Evento para notificar cuando la copia se haya completado
+    public event EventHandler? CopyCompleted; // Permitir valores NULL
 
     private Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new Queue<(string, string, ProgressBar, CheckBox)>();
     private bool isCopying = false;

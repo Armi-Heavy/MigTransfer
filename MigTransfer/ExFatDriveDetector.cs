@@ -26,11 +26,11 @@ public class ExFatDriveDetector
     public const uint SHGFI_LARGEICON = 0x000000000; // Large icon
     public const uint SHGFI_SMALLICON = 0x000000001; // Small icon
 
-    public event EventHandler DrivesChanged;
+    public event EventHandler? DrivesChanged; // Permitir valores NULL
 
     public ExFatDriveDetector()
     {
-        // Eliminar el código relacionado con UsbEventWatcher
+        // Constructor vacío
     }
 
     public List<DriveInfo> GetExFatDrives()
@@ -46,7 +46,7 @@ public class ExFatDriveDetector
         return exFatDrives;
     }
 
-    public Icon GetSystemIcon(string path)
+    public Icon? GetSystemIcon(string path)
     {
         SHFILEINFO shinfo = new SHFILEINFO();
         IntPtr hImgSmall = SHGetFileInfo(path, 0, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_ICON | SHGFI_SMALLICON);
@@ -72,7 +72,7 @@ public class ExFatDriveDetector
 
         // Crear el PictureBox para el icono del dispositivo
         PictureBox pictureBox = new PictureBox();
-        Icon icon = GetSystemIcon(drive.Name);
+        Icon? icon = GetSystemIcon(drive.Name);
         if (icon != null)
         {
             pictureBox.Image = icon.ToBitmap();
@@ -131,7 +131,7 @@ public class ExFatDriveDetector
 
     public void StopWatcher()
     {
-        // Eliminar el código relacionado con UsbEventWatcher
+        // Método vacío ya que no hay watcher que detener
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]

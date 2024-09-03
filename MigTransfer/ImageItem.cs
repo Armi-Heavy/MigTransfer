@@ -2,16 +2,17 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MigTransfer
 {
     public class ImageItem : UserControl
     {
-        private PictureBox pictureBox;
-        private CheckBox checkBox;
-        private ProgressBar progressBar;
-        private Image originalImage;
+        private PictureBox pictureBox = null!;
+        private CheckBox checkBox = null!;
+        private ProgressBar progressBar = null!;
+        private Image? originalImage; // Permitir valores NULL
         private string imagePath;
         private Form1 form;
         private bool fromComparison = false;
@@ -24,7 +25,7 @@ namespace MigTransfer
             this.imagePath = imagePath;
             this.form = form;
             InitializeComponents();
-            LoadImageAsync(imagePath);
+            _ = LoadImageAsync(imagePath); // Ignorar advertencia de método asincrónico sin await
         }
 
         private void InitializeComponents()
@@ -72,7 +73,7 @@ namespace MigTransfer
                 {
                     if (fromComparison) return;
 
-                    DriveInfo activeDrive = form.GetActiveDrive();
+                    DriveInfo? activeDrive = form.GetActiveDrive();
                     if (activeDrive == null)
                     {
                         MessageBox.Show("Por favor, seleccione un dispositivo donde copiar los archivos antes de continuar.", "Dispositivo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -87,12 +88,19 @@ namespace MigTransfer
                     pictureBox.Enabled = false; // Bloquear el PictureBox
                     isCopying = true; // Marcar que la copia está activa
 
-                    string directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                    string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                    if (directoryName == null)
+                    {
+                        MessageBox.Show("Error al obtener el nombre del directorio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        checkBox.Checked = false;
+                        return;
+                    }
+
                     string destinationDirectory = activeDrive.RootDirectory.FullName;
 
                     FileCopyManager fileCopyManager = new FileCopyManager();
                     fileCopyManager.CopyCompleted += OnCopyCompleted; // Suscribirse al evento de copia completada
-                    fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
+                    await Task.Run(() => fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox)); // Usar await Task.Run para ejecutar en segundo plano
                 }
                 else
                 {
@@ -105,10 +113,16 @@ namespace MigTransfer
                     pictureBox.Image = originalImage;
                     progressBar.Visible = false;
 
-                    DriveInfo activeDrive = form.GetActiveDrive();
+                    DriveInfo? activeDrive = form.GetActiveDrive();
                     if (activeDrive != null)
                     {
-                        string directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                        string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                        if (directoryName == null)
+                        {
+                            MessageBox.Show("Error al obtener el nombre del directorio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
                         string destinationDirectory = Path.Combine(activeDrive.RootDirectory.FullName, directoryName);
 
                         if (Directory.Exists(destinationDirectory))
@@ -125,6 +139,7 @@ namespace MigTransfer
                     }
                 }
             };
+
         }
 
         private void ToggleCheckBox()
@@ -135,13 +150,13 @@ namespace MigTransfer
             }
         }
 
-        private async void LoadImageAsync(string imagePath)
+        private async Task LoadImageAsync(string imagePath)
         {
             try
             {
                 using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
                 {
-                    originalImage = Image.FromStream(stream);
+                    originalImage = await Task.Run(() => Image.FromStream(stream)); // Usar await Task.Run para ejecutar en segundo plano
                 }
                 pictureBox.Image = originalImage;
             }
@@ -150,6 +165,7 @@ namespace MigTransfer
                 MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
         public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
         {
@@ -171,13 +187,15 @@ namespace MigTransfer
             checkBox.CheckedChanged += CheckBox_CheckedChanged;
         }
 
-        private void CheckBox_CheckedChanged(object sender, EventArgs e)
+        private void CheckBox_CheckedChanged(object? sender, EventArgs e)
         {
             // Implementar la lógica de CheckedChanged aquí si es necesario
         }
 
-        private Image ChangeImageBrightness(Image image, float brightness)
+        private Image ChangeImageBrightness(Image? image, float brightness)
         {
+            if (image == null) throw new ArgumentNullException(nameof(image));
+
             Bitmap bmp = new Bitmap(image.Width, image.Height);
             using (Graphics gfx = Graphics.FromImage(bmp))
             {
@@ -197,7 +215,7 @@ namespace MigTransfer
             return bmp;
         }
 
-        private void OnCopyCompleted(object sender, EventArgs e)
+        private void OnCopyCompleted(object? sender, EventArgs e)
         {
             checkBox.Invoke((MethodInvoker)(() => checkBox.Enabled = true)); // Desbloquear el CheckBox
             pictureBox.Invoke((MethodInvoker)(() => pictureBox.Enabled = true)); // Desbloquear el PictureBox
