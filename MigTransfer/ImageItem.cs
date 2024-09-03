@@ -100,9 +100,9 @@ namespace MigTransfer
 
                     string destinationDirectory = activeDrive.RootDirectory.FullName;
 
-                    FileCopyManager fileCopyManager = new FileCopyManager();
+                    FileCopyManager fileCopyManager = new FileCopyManager(driveSpaceManager, form.activeDrivePanel, activeDrive);
                     fileCopyManager.CopyCompleted += (s, e) => OnCopyCompleted(activeDrive); // Suscribirse al evento de copia completada
-                    await Task.Run(() => fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox)); // Usar await Task.Run para ejecutar en segundo plano
+                    fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
                 }
                 else
                 {
@@ -230,6 +230,9 @@ namespace MigTransfer
 
             // Actualizar la barra de progreso y el texto del tamaño actual
             driveSpaceManager.UpdateDrivePanel(activeDrive, form.activeDrivePanel);
+
+            // Mostrar la notificación
+            NotificationManager.ShowNotification(imagePath, Path.GetDirectoryName(imagePath));
         }
     }
 }

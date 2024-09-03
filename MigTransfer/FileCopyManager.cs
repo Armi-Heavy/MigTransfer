@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MigTransfer;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,31 +12,33 @@ public class FileCopyManager
 
     private readonly Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new();
     private bool isCopying;
+    private readonly DriveSpaceManager driveSpaceManager;
+    private readonly Panel drivePanel;
+    private readonly DriveInfo driveInfo;
 
-    public async void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
+    public FileCopyManager(DriveSpaceManager driveSpaceManager, Panel drivePanel, DriveInfo driveInfo)
     {
-        try
+        this.driveSpaceManager = driveSpaceManager;
+        this.drivePanel = drivePanel;
+        this.driveInfo = driveInfo;
+    }
+
+    public void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
+    {
+        copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox));
+        if (!isCopying)
         {
-            copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox));
-            if (!isCopying)
-            {
-                await StartCopying();
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error al agregar a la cola de copia: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            StartCopying();
         }
     }
 
-    private async Task StartCopying()
+    private async void StartCopying()
     {
         isCopying = true;
         while (copyQueue.Count > 0)
         {
-            var (sourceDirectory, destinationDirectory, progressBar, checkBox) = copyQueue.Peek();
+            var (sourceDirectory, destinationDirectory, progressBar, checkBox) = copyQueue.Dequeue();
             await CopyFiles(sourceDirectory, destinationDirectory, progressBar, checkBox);
-            copyQueue.Dequeue();
         }
         isCopying = false;
         CopyCompleted?.Invoke(this, EventArgs.Empty);
@@ -92,6 +95,7 @@ public class FileCopyManager
             }
         }
         progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
+        driveSpaceManager.UpdateDrivePanel(driveInfo, drivePanel); // Actualizar el texto del espacio disponible
         CopyCompleted?.Invoke(this, EventArgs.Empty);
     }
 }
