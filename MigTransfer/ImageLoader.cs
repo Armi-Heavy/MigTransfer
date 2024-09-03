@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace MigTransfer
 {
@@ -8,32 +10,23 @@ namespace MigTransfer
     {
         public List<string> LoadImagePaths()
         {
-            List<string> imagePaths = new List<string>();
-            string userFolderPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            string switchFolderPath = Path.Combine(userFolderPath, "ownCloud", "Switch");
+            var switchFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ownCloud", "Switch");
 
-            if (Directory.Exists(switchFolderPath))
+            if (!Directory.Exists(switchFolderPath))
+                return new List<string>();
+
+            try
             {
-                try
-                {
-                    var directories = Directory.GetDirectories(switchFolderPath);
-
-                    foreach (var directory in directories)
-                    {
-                        string imagePath = Path.Combine(directory, "Cover.jpg");
-                        if (File.Exists(imagePath))
-                        {
-                            imagePaths.Add(imagePath);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error al cargar las rutas de las imágenes: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                return Directory.GetDirectories(switchFolderPath)
+                                .Select(directory => Path.Combine(directory, "Cover.jpg"))
+                                .Where(File.Exists)
+                                .ToList();
             }
-
-            return imagePaths;
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar las rutas de las imágenes: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return new List<string>();
+            }
         }
     }
 }

@@ -9,62 +9,35 @@ namespace MigTransfer
 {
     public class ImageItem : UserControl
     {
-        private PictureBox pictureBox = null!;
-        private CheckBox checkBox = null!;
-        private ProgressBar progressBar = null!;
-        private Image? originalImage; // Permitir valores NULL
-        private string imagePath;
-        private Form1 form;
-        private bool fromComparison = false;
-        private bool isCopying = false; // Variable para rastrear si la copia está activa
+        private readonly PictureBox pictureBox = new PictureBox { SizeMode = PictureBoxSizeMode.StretchImage, Dock = DockStyle.Fill, Margin = new Padding(10) };
+        private readonly CheckBox checkBox = new CheckBox { Location = new Point(5, 5), AutoSize = true, Visible = false };
+        private readonly ProgressBar progressBar = new ProgressBar { Location = new Point(10, 384), Width = 236, Height = 20, Visible = false };
+        private readonly string imagePath;
+        private readonly Form1 form;
+        private Image? originalImage;
+        private bool fromComparison;
+        private bool isCopying;
 
-        public string ImagePath => imagePath; // Propiedad para acceder a imagePath
+        public string ImagePath => imagePath;
 
         public ImageItem(string imagePath, Form1 form)
         {
             this.imagePath = imagePath;
             this.form = form;
             InitializeComponents();
-            _ = LoadImageAsync(imagePath); // Ignorar advertencia de método asincrónico sin await
+            _ = LoadImageAsync(imagePath);
         }
 
         private void InitializeComponents()
         {
             this.Size = new Size(256, 414);
-
-            pictureBox = new PictureBox
-            {
-                SizeMode = PictureBoxSizeMode.StretchImage,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(10)
-            };
-
-            checkBox = new CheckBox
-            {
-                Location = new Point(5, 5),
-                AutoSize = true,
-                Visible = false
-            };
-
-            progressBar = new ProgressBar
-            {
-                Location = new Point(10, this.Height - 30),
-                Width = this.Width - 20,
-                Height = 20,
-                Visible = false
-            };
-
-            this.Controls.Add(pictureBox);
-            this.Controls.Add(checkBox);
-            this.Controls.Add(progressBar);
-
+            this.Controls.AddRange(new Control[] { pictureBox, checkBox, progressBar });
             checkBox.BringToFront();
 
             pictureBox.MouseEnter += (s, e) => checkBox.Visible = true;
             pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
             checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
             checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
-
             pictureBox.Click += (s, e) => ToggleCheckBox();
 
             checkBox.CheckedChanged += async (s, e) =>
@@ -73,7 +46,7 @@ namespace MigTransfer
                 {
                     if (fromComparison) return;
 
-                    DriveInfo? activeDrive = form.GetActiveDrive();
+                    var activeDrive = form.GetActiveDrive();
                     if (activeDrive == null)
                     {
                         MessageBox.Show("Por favor, seleccione un dispositivo donde copiar los archivos antes de continuar.", "Dispositivo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -84,11 +57,10 @@ namespace MigTransfer
                     pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
                     progressBar.Visible = true;
                     progressBar.BringToFront();
-                    checkBox.Enabled = false; // Bloquear el CheckBox
-                    pictureBox.Enabled = false; // Bloquear el PictureBox
-                    isCopying = true; // Marcar que la copia está activa
+                    checkBox.Enabled = pictureBox.Enabled = false;
+                    isCopying = true;
 
-                    string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                    var directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
                     if (directoryName == null)
                     {
                         MessageBox.Show("Error al obtener el nombre del directorio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -96,35 +68,33 @@ namespace MigTransfer
                         return;
                     }
 
-                    string destinationDirectory = activeDrive.RootDirectory.FullName;
-
-                    FileCopyManager fileCopyManager = new FileCopyManager();
-                    fileCopyManager.CopyCompleted += OnCopyCompleted; // Suscribirse al evento de copia completada
-                    await Task.Run(() => fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox)); // Usar await Task.Run para ejecutar en segundo plano
+                    var destinationDirectory = activeDrive.RootDirectory.FullName;
+                    var fileCopyManager = new FileCopyManager();
+                    fileCopyManager.CopyCompleted += OnCopyCompleted;
+                    await Task.Run(() => fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox));
                 }
                 else
                 {
                     if (isCopying)
                     {
-                        checkBox.Checked = true; // No permitir desmarcar si la copia está activa
+                        checkBox.Checked = true;
                         return;
                     }
 
                     pictureBox.Image = originalImage;
                     progressBar.Visible = false;
 
-                    DriveInfo? activeDrive = form.GetActiveDrive();
+                    var activeDrive = form.GetActiveDrive();
                     if (activeDrive != null)
                     {
-                        string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                        var directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
                         if (directoryName == null)
                         {
                             MessageBox.Show("Error al obtener el nombre del directorio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
-                        string destinationDirectory = Path.Combine(activeDrive.RootDirectory.FullName, directoryName);
-
+                        var destinationDirectory = Path.Combine(activeDrive.RootDirectory.FullName, directoryName);
                         if (Directory.Exists(destinationDirectory))
                         {
                             try
@@ -139,7 +109,6 @@ namespace MigTransfer
                     }
                 }
             };
-
         }
 
         private void ToggleCheckBox()
@@ -156,7 +125,7 @@ namespace MigTransfer
             {
                 using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
                 {
-                    originalImage = await Task.Run(() => Image.FromStream(stream)); // Usar await Task.Run para ejecutar en segundo plano
+                    originalImage = await Task.Run(() => Image.FromStream(stream));
                 }
                 pictureBox.Image = originalImage;
             }
@@ -165,7 +134,6 @@ namespace MigTransfer
                 MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
 
         public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
         {
@@ -196,19 +164,19 @@ namespace MigTransfer
         {
             if (image == null) throw new ArgumentNullException(nameof(image));
 
-            Bitmap bmp = new Bitmap(image.Width, image.Height);
-            using (Graphics gfx = Graphics.FromImage(bmp))
+            var bmp = new Bitmap(image.Width, image.Height);
+            using (var gfx = Graphics.FromImage(bmp))
             {
-                float[][] ptsArray = {
+                var clrMatrix = new ColorMatrix(new float[][]
+                {
                     new float[] {1, 0, 0, 0, 0},
                     new float[] {0, 1, 0, 0, 0},
                     new float[] {0, 0, 1, 0, 0},
                     new float[] {0, 0, 0, 1, 0},
                     new float[] {brightness, brightness, brightness, 0, 1}
-                };
+                });
 
-                ColorMatrix clrMatrix = new ColorMatrix(ptsArray);
-                ImageAttributes imgAttributes = new ImageAttributes();
+                var imgAttributes = new ImageAttributes();
                 imgAttributes.SetColorMatrix(clrMatrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
                 gfx.DrawImage(image, new Rectangle(0, 0, bmp.Width, bmp.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, imgAttributes);
             }
@@ -217,9 +185,9 @@ namespace MigTransfer
 
         private void OnCopyCompleted(object? sender, EventArgs e)
         {
-            checkBox.Invoke((MethodInvoker)(() => checkBox.Enabled = true)); // Desbloquear el CheckBox
-            pictureBox.Invoke((MethodInvoker)(() => pictureBox.Enabled = true)); // Desbloquear el PictureBox
-            isCopying = false; // Marcar que la copia ha terminado
+            checkBox.Invoke((MethodInvoker)(() => checkBox.Enabled = true));
+            pictureBox.Invoke((MethodInvoker)(() => pictureBox.Enabled = true));
+            isCopying = false;
         }
     }
 }

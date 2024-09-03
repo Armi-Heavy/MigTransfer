@@ -23,39 +23,25 @@ public class ExFatDriveDetector
     public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
 
     public const uint SHGFI_ICON = 0x000000100;
-    public const uint SHGFI_LARGEICON = 0x000000000; // Large icon
-    public const uint SHGFI_SMALLICON = 0x000000001; // Small icon
+    public const uint SHGFI_SMALLICON = 0x000000001;
 
-    public event EventHandler? DrivesChanged; // Permitir valores NULL
+    public event EventHandler? DrivesChanged;
 
-    public ExFatDriveDetector()
-    {
-        // Constructor vacío
-    }
-
-    public List<DriveInfo> GetExFatDrives()
-    {
-        List<DriveInfo> exFatDrives = new List<DriveInfo>();
-        foreach (DriveInfo drive in DriveInfo.GetDrives())
-        {
-            if (drive.IsReady && drive.DriveFormat.Equals("exFAT", StringComparison.OrdinalIgnoreCase))
-            {
-                exFatDrives.Add(drive);
-            }
-        }
-        return exFatDrives;
-    }
+    public List<DriveInfo> GetExFatDrives() =>
+        DriveInfo.GetDrives()
+                 .Where(drive => drive.IsReady && drive.DriveFormat.Equals("exFAT", StringComparison.OrdinalIgnoreCase))
+                 .ToList();
 
     public Icon? GetSystemIcon(string path)
     {
-        SHFILEINFO shinfo = new SHFILEINFO();
-        IntPtr hImgSmall = SHGetFileInfo(path, 0, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_ICON | SHGFI_SMALLICON);
+        var shinfo = new SHFILEINFO();
+        var hImgSmall = SHGetFileInfo(path, 0, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_ICON | SHGFI_SMALLICON);
 
         if (shinfo.hIcon != IntPtr.Zero)
         {
-            Icon icon = Icon.FromHandle(shinfo.hIcon);
-            Icon clonedIcon = (Icon)icon.Clone();
-            DestroyIcon(icon.Handle); // Liberar el recurso del icono original
+            var icon = Icon.FromHandle(shinfo.hIcon);
+            var clonedIcon = (Icon)icon.Clone();
+            DestroyIcon(icon.Handle);
             return clonedIcon;
         }
         return null;
@@ -63,76 +49,62 @@ public class ExFatDriveDetector
 
     public Panel CreateDrivePanel(DriveInfo drive, int panelWidth)
     {
-        // Crear un panel para contener el icono, la barra de progreso y el nombre del dispositivo
-        Panel panel = new Panel();
-        panel.Width = panelWidth - 20;
-        panel.Height = 90; // Aumentar la altura para acomodar la barra de progreso debajo del icono
-        panel.Margin = new Padding(5);
-        panel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-
-        // Crear el PictureBox para el icono del dispositivo
-        PictureBox pictureBox = new PictureBox();
-        Icon? icon = GetSystemIcon(drive.Name);
-        if (icon != null)
+        var panel = new Panel
         {
-            pictureBox.Image = icon.ToBitmap();
+            Width = panelWidth - 20,
+            Height = 90,
+            Margin = new Padding(5),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        var pictureBox = new PictureBox
+        {
+            Image = GetSystemIcon(drive.Name)?.ToBitmap(),
+            SizeMode = PictureBoxSizeMode.StretchImage,
+            Width = 50,
+            Height = 50,
+            Location = new Point(10, 10),
+            Tag = drive
+        };
+
+        var progressBar = new CustomProgressBar
+        {
+            Width = panel.Width - 20,
+            Height = 20,
+            Location = new Point(10, 70),
+            Minimum = 0,
+            Maximum = (int)(drive.TotalSize / (1024 * 1024 * 1024)),
+            Value = Math.Max(0, Math.Min((int)((drive.TotalSize - drive.AvailableFreeSpace) / (1024 * 1024 * 1024)), (int)(drive.TotalSize / (1024 * 1024 * 1024)))),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        var label = new Label
+        {
+            Text = $"{drive.Name} ({drive.VolumeLabel})",
+            Location = new Point(70, 10),
+            AutoSize = true,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        var sizeLabel = new Label
+        {
+            Text = $"{(int)((drive.TotalSize - drive.AvailableFreeSpace) / (1024 * 1024 * 1024))} GB / {(int)(drive.TotalSize / (1024 * 1024 * 1024))} GB",
+            Location = new Point(70, 30),
+            AutoSize = true,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+
+        panel.Controls.AddRange(new Control[] { pictureBox, progressBar, label, sizeLabel });
+
+        foreach (Control control in panel.Controls)
+        {
+            control.Click += (s, e) => DrivesChanged?.Invoke(drive, EventArgs.Empty);
         }
-        pictureBox.SizeMode = PictureBoxSizeMode.StretchImage;
-        pictureBox.Width = 50;
-        pictureBox.Height = 50;
-        pictureBox.Location = new Point(10, 10);
-        pictureBox.Tag = drive;
-
-        // Crear la barra de progreso personalizada para mostrar el tamaño usado
-        CustomProgressBar progressBar = new CustomProgressBar();
-        progressBar.Width = panel.Width - 20;
-        progressBar.Height = 20;
-        progressBar.Location = new Point(10, 70); // Colocar debajo del icono
-        progressBar.Minimum = 0;
-        progressBar.Maximum = (int)(drive.TotalSize / (1024 * 1024 * 1024)); // Convertir a GB
-        int usedSpace = (int)((drive.TotalSize - drive.AvailableFreeSpace) / (1024 * 1024 * 1024)); // Convertir a GB
-        progressBar.Value = Math.Max(progressBar.Minimum, Math.Min(usedSpace, progressBar.Maximum)); // Asegurar que el valor esté dentro del rango
-        progressBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-
-        // Crear la etiqueta para mostrar el nombre del dispositivo
-        Label label = new Label();
-        label.Text = $"{drive.Name} ({drive.VolumeLabel})";
-        label.Location = new Point(70, 10);
-        label.AutoSize = true;
-        label.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-
-        // Crear la etiqueta para mostrar el tamaño usado y el tamaño total en GB
-        Label sizeLabel = new Label();
-        sizeLabel.Text = $"{usedSpace} GB / {progressBar.Maximum} GB";
-        sizeLabel.Location = new Point(70, 30);
-        sizeLabel.AutoSize = true;
-        sizeLabel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-
-        // Añadir los controles al panel
-        panel.Controls.Add(pictureBox);
-        panel.Controls.Add(progressBar);
-        panel.Controls.Add(label);
-        panel.Controls.Add(sizeLabel);
-
-        // Añadir el evento Click a todos los controles del panel
-        panel.Click += (s, e) => OnPanelClick(drive, panel);
-        pictureBox.Click += (s, e) => OnPanelClick(drive, panel);
-        progressBar.Click += (s, e) => OnPanelClick(drive, panel);
-        label.Click += (s, e) => OnPanelClick(drive, panel);
-        sizeLabel.Click += (s, e) => OnPanelClick(drive, panel);
 
         return panel;
     }
 
-    private void OnPanelClick(DriveInfo drive, Panel panel)
-    {
-        DrivesChanged?.Invoke(drive, EventArgs.Empty);
-    }
-
-    public void StopWatcher()
-    {
-        // Método vacío ya que no hay watcher que detener
-    }
+    public void StopWatcher() { }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     extern static bool DestroyIcon(IntPtr handle);
