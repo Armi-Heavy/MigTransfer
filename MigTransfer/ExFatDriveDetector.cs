@@ -32,9 +32,16 @@ public class ExFatDriveDetector
 
     public ExFatDriveDetector()
     {
-        usbEventWatcher = new UsbEventWatcher();
-        usbEventWatcher.UsbInserted += OnUsbChanged;
-        usbEventWatcher.UsbRemoved += OnUsbChanged;
+        try
+        {
+            usbEventWatcher = new UsbEventWatcher();
+            usbEventWatcher.UsbInserted += OnUsbChanged;
+            usbEventWatcher.UsbRemoved += OnUsbChanged;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al configurar los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     public List<DriveInfo> GetExFatDrives()
@@ -57,7 +64,10 @@ public class ExFatDriveDetector
 
         if (shinfo.hIcon != IntPtr.Zero)
         {
-            return Icon.FromHandle(shinfo.hIcon);
+            Icon icon = Icon.FromHandle(shinfo.hIcon);
+            Icon clonedIcon = (Icon)icon.Clone();
+            DestroyIcon(icon.Handle); // Liberar el recurso del icono original
+            return clonedIcon;
         }
         return null;
     }
@@ -137,6 +147,16 @@ public class ExFatDriveDetector
 
     public void StopWatcher()
     {
-        usbEventWatcher.Stop();
+        try
+        {
+            usbEventWatcher.Stop();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al detener los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    extern static bool DestroyIcon(IntPtr handle);
 }

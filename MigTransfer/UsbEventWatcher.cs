@@ -11,17 +11,24 @@ public class UsbEventWatcher
 
     public UsbEventWatcher()
     {
-        // Configurar el watcher para detectar la inserción de unidades
-        insertWatcher = new ManagementEventWatcher();
-        insertWatcher.Query = new WqlEventQuery("SELECT * FROM __InstanceCreationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
-        insertWatcher.EventArrived += new EventArrivedEventHandler(OnUsbInserted);
-        insertWatcher.Start();
+        try
+        {
+            // Configurar el watcher para detectar la inserción de unidades
+            insertWatcher = new ManagementEventWatcher();
+            insertWatcher.Query = new WqlEventQuery("SELECT * FROM __InstanceCreationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
+            insertWatcher.EventArrived += new EventArrivedEventHandler(OnUsbInserted);
+            insertWatcher.Start();
 
-        // Configurar el watcher para detectar la eliminación de unidades
-        removeWatcher = new ManagementEventWatcher();
-        removeWatcher.Query = new WqlEventQuery("SELECT * FROM __InstanceDeletionEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
-        removeWatcher.EventArrived += new EventArrivedEventHandler(OnUsbRemoved);
-        removeWatcher.Start();
+            // Configurar el watcher para detectar la eliminación de unidades
+            removeWatcher = new ManagementEventWatcher();
+            removeWatcher.Query = new WqlEventQuery("SELECT * FROM __InstanceDeletionEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
+            removeWatcher.EventArrived += new EventArrivedEventHandler(OnUsbRemoved);
+            removeWatcher.Start();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al configurar los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     private void OnUsbInserted(object sender, EventArrivedEventArgs e)
@@ -36,7 +43,14 @@ public class UsbEventWatcher
 
     public void Stop()
     {
-        insertWatcher.Stop();
-        removeWatcher.Stop();
+        try
+        {
+            insertWatcher.Stop();
+            removeWatcher.Stop();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al detener los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 }

@@ -6,24 +6,31 @@ using System.Windows.Forms;
 
 public class FileCopyManager
 {
-    private Queue<string> copyQueue = new Queue<string>();
+    private Queue<(string sourceDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new Queue<(string, ProgressBar, CheckBox)>();
     private bool isCopying = false;
 
     public async void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
     {
-        copyQueue.Enqueue(sourceDirectory);
-        if (!isCopying)
+        try
         {
-            await StartCopying(destinationDirectory, progressBar, checkBox);
+            copyQueue.Enqueue((sourceDirectory, progressBar, checkBox));
+            if (!isCopying)
+            {
+                await StartCopying(destinationDirectory);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al agregar a la cola de copia: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
-    private async Task StartCopying(string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
+    private async Task StartCopying(string destinationDirectory)
     {
         isCopying = true;
         while (copyQueue.Count > 0)
         {
-            string sourceDirectory = copyQueue.Dequeue();
+            var (sourceDirectory, progressBar, checkBox) = copyQueue.Dequeue();
             await CopyFiles(sourceDirectory, destinationDirectory, progressBar, checkBox);
         }
         isCopying = false;
@@ -93,5 +100,6 @@ public class FileCopyManager
                 return;
             }
         }
+        progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100)); // Asegurar que la barra de progreso llegue al 100%
     }
 }

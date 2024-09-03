@@ -14,15 +14,22 @@ namespace MigTransfer
 
             if (Directory.Exists(switchFolderPath))
             {
-                var directories = Directory.GetDirectories(switchFolderPath);
-
-                foreach (var directory in directories)
+                try
                 {
-                    string imagePath = Path.Combine(directory, "Cover.jpg");
-                    if (File.Exists(imagePath))
+                    var directories = Directory.GetDirectories(switchFolderPath);
+
+                    foreach (var directory in directories)
                     {
-                        imagePaths.Add(imagePath);
+                        string imagePath = Path.Combine(directory, "Cover.jpg");
+                        if (File.Exists(imagePath))
+                        {
+                            imagePaths.Add(imagePath);
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al cargar las rutas de las imágenes: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 

@@ -18,21 +18,20 @@ namespace MigTransfer
 
         public string ImagePath => imagePath; // Propiedad para acceder a imagePath
 
-        public ImageItem(Image image, string imagePath, Form1 form)
+        public ImageItem(string imagePath, Form1 form)
         {
             this.imagePath = imagePath;
             this.form = form;
-            originalImage = image;
-            InitializeComponents(image);
+            InitializeComponents();
+            LoadImageAsync(imagePath);
         }
 
-        private void InitializeComponents(Image image)
+        private void InitializeComponents()
         {
             this.Size = new Size(256, 414);
 
             pictureBox = new PictureBox
             {
-                Image = image,
                 SizeMode = PictureBoxSizeMode.StretchImage,
                 Dock = DockStyle.Fill,
                 Margin = new Padding(10)
@@ -61,7 +60,7 @@ namespace MigTransfer
 
             pictureBox.MouseEnter += (s, e) => checkBox.Visible = false;
             pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
-            checkBox.MouseEnter += (s, e) => checkBox.Visible = false;
+            checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
             checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
 
             pictureBox.Click += (s, e) => checkBox.Checked = !checkBox.Checked;
@@ -117,6 +116,22 @@ namespace MigTransfer
             };
         }
 
+        private async void LoadImageAsync(string imagePath)
+        {
+            try
+            {
+                using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+                {
+                    originalImage = Image.FromStream(stream);
+                }
+                pictureBox.Image = originalImage;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
         {
             this.fromComparison = fromComparison;
@@ -128,6 +143,11 @@ namespace MigTransfer
                 progressBar.Value = 100;
                 progressBar.BringToFront();
                 pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
+            }
+            else if (!isChecked)
+            {
+                progressBar.Visible = false;
+                pictureBox.Image = originalImage;
             }
             checkBox.CheckedChanged += CheckBox_CheckedChanged;
         }

@@ -30,9 +30,15 @@ namespace MigTransfer
 
             foreach (var imagePath in imagePaths)
             {
-                Image image = Image.FromFile(imagePath);
-                ImageItem imageItem = new ImageItem(image, imagePath, this);
-                flowLayoutPanel1.Controls.Add(imageItem);
+                try
+                {
+                    ImageItem imageItem = new ImageItem(imagePath, this);
+                    flowLayoutPanel1.Controls.Add(imageItem);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
