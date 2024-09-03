@@ -15,6 +15,7 @@ namespace MigTransfer
         private string imagePath;
         private Form1 form;
         private bool fromComparison = false;
+        private bool isCopying = false; // Variable para rastrear si la copia está activa
 
         public string ImagePath => imagePath; // Propiedad para acceder a imagePath
 
@@ -58,12 +59,12 @@ namespace MigTransfer
 
             checkBox.BringToFront();
 
-            pictureBox.MouseEnter += (s, e) => checkBox.Visible = false;
+            pictureBox.MouseEnter += (s, e) => checkBox.Visible = true;
             pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
             checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
             checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
 
-            pictureBox.Click += (s, e) => checkBox.Checked = !checkBox.Checked;
+            pictureBox.Click += (s, e) => ToggleCheckBox();
 
             checkBox.CheckedChanged += async (s, e) =>
             {
@@ -82,15 +83,25 @@ namespace MigTransfer
                     pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
                     progressBar.Visible = true;
                     progressBar.BringToFront();
+                    checkBox.Enabled = false; // Bloquear el CheckBox
+                    pictureBox.Enabled = false; // Bloquear el PictureBox
+                    isCopying = true; // Marcar que la copia está activa
 
                     string directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
                     string destinationDirectory = activeDrive.RootDirectory.FullName;
 
                     FileCopyManager fileCopyManager = new FileCopyManager();
+                    fileCopyManager.CopyCompleted += OnCopyCompleted; // Suscribirse al evento de copia completada
                     fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
                 }
                 else
                 {
+                    if (isCopying)
+                    {
+                        checkBox.Checked = true; // No permitir desmarcar si la copia está activa
+                        return;
+                    }
+
                     pictureBox.Image = originalImage;
                     progressBar.Visible = false;
 
@@ -114,6 +125,14 @@ namespace MigTransfer
                     }
                 }
             };
+        }
+
+        private void ToggleCheckBox()
+        {
+            if (!isCopying)
+            {
+                checkBox.Checked = !checkBox.Checked;
+            }
         }
 
         private async void LoadImageAsync(string imagePath)
@@ -176,6 +195,13 @@ namespace MigTransfer
                 gfx.DrawImage(image, new Rectangle(0, 0, bmp.Width, bmp.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, imgAttributes);
             }
             return bmp;
+        }
+
+        private void OnCopyCompleted(object sender, EventArgs e)
+        {
+            checkBox.Invoke((MethodInvoker)(() => checkBox.Enabled = true)); // Desbloquear el CheckBox
+            pictureBox.Invoke((MethodInvoker)(() => pictureBox.Enabled = true)); // Desbloquear el PictureBox
+            isCopying = false; // Marcar que la copia ha terminado
         }
     }
 }

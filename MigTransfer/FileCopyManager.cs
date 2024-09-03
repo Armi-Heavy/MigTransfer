@@ -6,17 +6,19 @@ using System.Windows.Forms;
 
 public class FileCopyManager
 {
-    private Queue<(string sourceDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new Queue<(string, ProgressBar, CheckBox)>();
+    public event EventHandler CopyCompleted; // Evento para notificar cuando la copia se haya completado
+
+    private Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new Queue<(string, string, ProgressBar, CheckBox)>();
     private bool isCopying = false;
 
     public async void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
     {
         try
         {
-            copyQueue.Enqueue((sourceDirectory, progressBar, checkBox));
+            copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox));
             if (!isCopying)
             {
-                await StartCopying(destinationDirectory);
+                await StartCopying();
             }
         }
         catch (Exception ex)
@@ -25,15 +27,17 @@ public class FileCopyManager
         }
     }
 
-    private async Task StartCopying(string destinationDirectory)
+    private async Task StartCopying()
     {
         isCopying = true;
         while (copyQueue.Count > 0)
         {
-            var (sourceDirectory, progressBar, checkBox) = copyQueue.Dequeue();
+            var (sourceDirectory, destinationDirectory, progressBar, checkBox) = copyQueue.Peek();
             await CopyFiles(sourceDirectory, destinationDirectory, progressBar, checkBox);
+            copyQueue.Dequeue(); // Eliminar el elemento de la cola después de copiar
         }
         isCopying = false;
+        CopyCompleted?.Invoke(this, EventArgs.Empty); // Notificar que la copia se ha completado
     }
 
     private async Task CopyFiles(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
@@ -101,5 +105,6 @@ public class FileCopyManager
             }
         }
         progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100)); // Asegurar que la barra de progreso llegue al 100%
+        CopyCompleted?.Invoke(this, EventArgs.Empty); // Notificar que la copia se ha completado
     }
 }
