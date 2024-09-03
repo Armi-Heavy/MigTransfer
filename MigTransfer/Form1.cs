@@ -11,12 +11,16 @@ namespace MigTransfer
     {
         private readonly ImageLoader imageLoader = new ImageLoader();
         private readonly ExFatDriveDetector exFatDriveDetector = new ExFatDriveDetector();
+        private readonly DriveSpaceManager driveSpaceManager;
         private DriveInfo activeDrive;
-        private Panel activeDrivePanel;
+        public Panel activeDrivePanel; // Cambiar a public o internal
+
+        public event EventHandler? DriveSpaceUpdated;
 
         public Form1()
         {
             InitializeComponent();
+            driveSpaceManager = new DriveSpaceManager(this);
             LoadImagesToFlowLayoutPanel();
             LoadExFatDrivesToFlowLayoutPanel();
             this.Resize += (s, e) => AdjustFlowLayoutPanelSizes();
@@ -101,6 +105,16 @@ namespace MigTransfer
                     }
                 }
             }
+        }
+
+        public void UpdateDrivePanel(DriveInfo drive, Panel panel)
+        {
+            driveSpaceManager.UpdateDrivePanel(drive, panel);
+        }
+
+        public void OnDriveSpaceUpdated()
+        {
+            DriveSpaceUpdated?.Invoke(this, EventArgs.Empty);
         }
     }
 }

@@ -104,6 +104,19 @@ public class ExFatDriveDetector
         return panel;
     }
 
+    public void UpdateDrivePanel(DriveInfo drive, Panel panel)
+    {
+        var progressBar = panel.Controls.OfType<CustomProgressBar>().FirstOrDefault();
+        var sizeLabel = panel.Controls.OfType<Label>().LastOrDefault();
+
+        if (progressBar != null && sizeLabel != null)
+        {
+            progressBar.Maximum = (int)(drive.TotalSize / (1024 * 1024 * 1024));
+            progressBar.Value = Math.Max(0, Math.Min((int)((drive.TotalSize - drive.AvailableFreeSpace) / (1024 * 1024 * 1024)), progressBar.Maximum));
+            sizeLabel.Text = $"{(int)((drive.TotalSize - drive.AvailableFreeSpace) / (1024 * 1024 * 1024))} GB / {progressBar.Maximum} GB";
+        }
+    }
+
     public void StopWatcher() { }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]

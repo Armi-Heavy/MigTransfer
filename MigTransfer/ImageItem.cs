@@ -15,6 +15,7 @@ namespace MigTransfer
         private Image? originalImage; // Permitir valores NULL
         private string imagePath;
         private Form1 form;
+        private DriveSpaceManager driveSpaceManager;
         private bool fromComparison = false;
         private bool isCopying = false; // Variable para rastrear si la copia está activa
 
@@ -24,6 +25,7 @@ namespace MigTransfer
         {
             this.imagePath = imagePath;
             this.form = form;
+            this.driveSpaceManager = new DriveSpaceManager(form);
             InitializeComponents();
             _ = LoadImageAsync(imagePath); // Ignorar advertencia de método asincrónico sin await
         }
@@ -99,7 +101,7 @@ namespace MigTransfer
                     string destinationDirectory = activeDrive.RootDirectory.FullName;
 
                     FileCopyManager fileCopyManager = new FileCopyManager();
-                    fileCopyManager.CopyCompleted += OnCopyCompleted; // Suscribirse al evento de copia completada
+                    fileCopyManager.CopyCompleted += (s, e) => OnCopyCompleted(activeDrive); // Suscribirse al evento de copia completada
                     await Task.Run(() => fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox)); // Usar await Task.Run para ejecutar en segundo plano
                 }
                 else
@@ -136,6 +138,9 @@ namespace MigTransfer
                                 MessageBox.Show($"Error al borrar el directorio '{destinationDirectory}': {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
+
+                        // Actualizar la barra de progreso y el texto del tamaño actual
+                        driveSpaceManager.UpdateDrivePanel(activeDrive, form.activeDrivePanel);
                     }
 
                     // Restablecer fromComparison después de desmarcar
@@ -217,11 +222,14 @@ namespace MigTransfer
             return bmp;
         }
 
-        private void OnCopyCompleted(object? sender, EventArgs e)
+        private void OnCopyCompleted(DriveInfo activeDrive)
         {
             checkBox.Invoke((MethodInvoker)(() => checkBox.Enabled = true)); // Desbloquear el CheckBox
             pictureBox.Invoke((MethodInvoker)(() => pictureBox.Enabled = true)); // Desbloquear el PictureBox
             isCopying = false; // Marcar que la copia ha terminado
+
+            // Actualizar la barra de progreso y el texto del tamaño actual
+            driveSpaceManager.UpdateDrivePanel(activeDrive, form.activeDrivePanel);
         }
     }
 }
