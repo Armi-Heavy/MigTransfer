@@ -232,7 +232,7 @@ namespace MigTransfer
             driveSpaceManager.UpdateDrivePanel(activeDrive, form.activeDrivePanel);
 
             // Mostrar la notificación
-            NotificationManager.ShowNotification(imagePath, Path.GetDirectoryName(imagePath));
+            NotificationManager.ShowNotification(imagePath, Path.GetDirectoryName(imagePath), originalImage);
         }
     }
 }

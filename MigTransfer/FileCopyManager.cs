@@ -16,6 +16,14 @@ public class FileCopyManager
     private readonly Panel drivePanel;
     private readonly DriveInfo driveInfo;
 
+    public bool IsCopying
+    {
+        get => isCopying;
+        internal set => isCopying = value;
+    }
+
+    public Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> CopyQueue => copyQueue;
+
     public FileCopyManager(DriveSpaceManager driveSpaceManager, Panel drivePanel, DriveInfo driveInfo)
     {
         this.driveSpaceManager = driveSpaceManager;
@@ -34,13 +42,13 @@ public class FileCopyManager
 
     private async void StartCopying()
     {
-        isCopying = true;
+        IsCopying = true;
         while (copyQueue.Count > 0)
         {
             var (sourceDirectory, destinationDirectory, progressBar, checkBox) = copyQueue.Dequeue();
             await CopyFiles(sourceDirectory, destinationDirectory, progressBar, checkBox);
         }
-        isCopying = false;
+        IsCopying = false;
         CopyCompleted?.Invoke(this, EventArgs.Empty);
     }
 
@@ -83,19 +91,35 @@ public class FileCopyManager
                     {
                         await destStream.WriteAsync(buffer, 0, bytesRead);
                         copiedSize += bytesRead;
-                        progressBar.Invoke((MethodInvoker)(() => progressBar.Value = (int)((double)copiedSize / totalSize * 100)));
+                        UpdateProgressBar(progressBar, (int)((double)copiedSize / totalSize * 100));
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al copiar el archivo '{sourceFilePath}': {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                checkBox.Invoke((MethodInvoker)(() => checkBox.Checked = false));
+                UpdateCheckBox(checkBox, false);
                 return;
             }
         }
-        progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
+        UpdateProgressBar(progressBar, 100);
         driveSpaceManager.UpdateDrivePanel(driveInfo, drivePanel); // Actualizar el texto del espacio disponible
         CopyCompleted?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void UpdateProgressBar(ProgressBar progressBar, int value)
+    {
+        if (progressBar.IsHandleCreated)
+        {
+            progressBar.Invoke((MethodInvoker)(() => progressBar.Value = value));
+        }
+    }
+
+    private void UpdateCheckBox(CheckBox checkBox, bool isChecked)
+    {
+        if (checkBox.IsHandleCreated)
+        {
+            checkBox.Invoke((MethodInvoker)(() => checkBox.Checked = isChecked));
+        }
     }
 }

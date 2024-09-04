@@ -14,6 +14,8 @@ namespace MigTransfer
         private readonly DriveSpaceManager driveSpaceManager;
         private DriveInfo activeDrive;
         public Panel activeDrivePanel; // Cambiar a public o internal
+        private FileCopyManager fileCopyManager;
+        private TransferManager transferManager;
 
         public event EventHandler? DriveSpaceUpdated;
 
@@ -21,9 +23,12 @@ namespace MigTransfer
         {
             InitializeComponent();
             driveSpaceManager = new DriveSpaceManager(this);
+            fileCopyManager = new FileCopyManager(driveSpaceManager, activeDrivePanel, GetActiveDrive());
+            transferManager = new TransferManager(fileCopyManager);
             LoadImagesToFlowLayoutPanel();
             LoadExFatDrivesToFlowLayoutPanel();
             this.Resize += (s, e) => AdjustFlowLayoutPanelSizes();
+            this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
         }
 
         private void LoadImagesToFlowLayoutPanel()
@@ -70,6 +75,15 @@ namespace MigTransfer
         {
             flowLayoutPanel1.Width = this.ClientSize.Width - flowLayoutPanel2.Width - 20;
             flowLayoutPanel1.Height = flowLayoutPanel2.Height = this.ClientSize.Height - 20;
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (!transferManager.IsClosing)
+            {
+                e.Cancel = true;
+                transferManager.VerifyAndCloseApplication(this);
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
