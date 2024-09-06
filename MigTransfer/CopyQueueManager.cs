@@ -1,4 +1,10 @@
-﻿public class CopyQueueManager
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+public class CopyQueueManager
 {
     private Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new();
     private readonly FileCopyManager fileCopyManager;
@@ -13,6 +19,7 @@
     public void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
     {
         copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox));
+        ReorderQueue();
         if (!isCopying)
         {
             StartCopying();
@@ -25,6 +32,7 @@
         if (item != default)
         {
             copyQueue = new Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)>(copyQueue.Where(x => x != item));
+            ReorderQueue();
         }
     }
 
@@ -90,5 +98,11 @@
                 checkBox.Enabled = true;
             }));
         }
+    }
+
+    private void ReorderQueue()
+    {
+        var orderedQueue = copyQueue.OrderBy(item => Path.GetDirectoryName(item.sourceDirectory)).ToList();
+        copyQueue = new Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)>(orderedQueue);
     }
 }

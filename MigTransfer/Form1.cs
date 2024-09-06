@@ -34,6 +34,9 @@ namespace MigTransfer
             LoadExFatDrivesToFlowLayoutPanel();
             this.Resize += (s, e) => AdjustFlowLayoutPanelSizes();
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
+
+            // Añadir el evento TextChanged para textBox1
+            textBox1.TextChanged += TextBox1_TextChanged;
         }
 
         public DriveInfo GetActiveDrive()
@@ -91,8 +94,19 @@ namespace MigTransfer
 
         private void AdjustFlowLayoutPanelSizes()
         {
+            // Ajustar el tamaño de flowLayoutPanel2 verticalmente
+            flowLayoutPanel2.Height = this.ClientSize.Height - flowLayoutPanel3.Height - 20;
+
+            // Ajustar el tamaño de flowLayoutPanel3 solo horizontalmente
+            flowLayoutPanel3.Width = this.ClientSize.Width - flowLayoutPanel2.Width - 20;
+
+            // Ajustar el tamaño de flowLayoutPanel1 horizontal y verticalmente
             flowLayoutPanel1.Width = this.ClientSize.Width - flowLayoutPanel2.Width - 20;
-            flowLayoutPanel1.Height = flowLayoutPanel2.Height = this.ClientSize.Height - 20;
+            flowLayoutPanel1.Height = this.ClientSize.Height - flowLayoutPanel3.Height - 20;
+
+            // Asegurarse de que flowLayoutPanel1 y flowLayoutPanel2 se toquen por sus lados
+            flowLayoutPanel1.Top = flowLayoutPanel3.Bottom + 10;
+            flowLayoutPanel2.Top = flowLayoutPanel3.Bottom + 10;
         }
 
         private async void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -123,6 +137,16 @@ namespace MigTransfer
             exFatDriveDetector.StopWatcher();
             usbEventWatcher.Stop();
             Application.Exit(); // Asegurarse de que la aplicación se cierre completamente
+        }
+
+        private void TextBox1_TextChanged(object sender, EventArgs e)
+        {
+            string filterText = textBox1.Text.ToLower();
+            foreach (var imageItem in flowLayoutPanel1.Controls.OfType<ImageItem>())
+            {
+                string directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImagePath)).ToLower();
+                imageItem.Visible = directoryName.Contains(filterText);
+            }
         }
 
         public void CompareAndMarkCheckBoxes()
