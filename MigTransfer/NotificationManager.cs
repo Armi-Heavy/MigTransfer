@@ -5,7 +5,7 @@ using System.Windows.Forms;
 
 namespace MigTransfer
 {
-    public class NotificationManager
+    public static class NotificationManager
     {
         public static void ShowNotification(string imagePath, string directoryPath, Image itemImage)
         {
@@ -17,16 +17,13 @@ namespace MigTransfer
                 directoryName = directoryName.Substring(0, index);
             }
 
-            // Crear el icono a partir de la imagen del ítem
-            Icon icon = CreateIconFromImage(itemImage);
-
-            // Crear la notificación
+            // Crear la notificación con el icono por defecto
             NotifyIcon notifyIcon = new NotifyIcon
             {
-                Icon = icon,
+                Icon = SystemIcons.Application, // Icono por defecto
                 Visible = true,
-                BalloonTipTitle = "Copia completada",
-                BalloonTipText = $"Juego: {directoryName}"
+                BalloonTipTitle = "Juego Añadido correctamente",
+                BalloonTipText = $"Directorio: {directoryName}"
             };
 
             // Mostrar la notificación
@@ -44,35 +41,36 @@ namespace MigTransfer
             timer.Start();
         }
 
-        private static Icon CreateIconFromImage(Image image)
+        public static void ShowNotification(string message)
         {
-            int iconSize = 64; // Tamaño del icono (puedes ajustarlo según sea necesario)
-            Bitmap squareBitmap = new Bitmap(iconSize, iconSize);
-            using (Graphics g = Graphics.FromImage(squareBitmap))
+            var notification = new Form
             {
-                g.Clear(Color.Transparent); // Fondo transparente
+                Size = new Size(300, 100),
+                StartPosition = FormStartPosition.Manual,
+                Location = new Point(Screen.PrimaryScreen.WorkingArea.Width - 310, Screen.PrimaryScreen.WorkingArea.Height - 110),
+                FormBorderStyle = FormBorderStyle.None,
+                TopMost = true,
+                BackColor = Color.White
+            };
 
-                // Calcular el tamaño y la posición de la imagen para mantener la relación de aspecto
-                int width, height;
-                if (image.Width > image.Height)
-                {
-                    width = iconSize;
-                    height = (int)(image.Height * (iconSize / (float)image.Width));
-                }
-                else
-                {
-                    height = iconSize;
-                    width = (int)(image.Width * (iconSize / (float)image.Height));
-                }
+            var label = new Label
+            {
+                Text = message,
+                AutoSize = true,
+                Location = new Point(10, 40)
+            };
 
-                int x = (iconSize - width) / 2;
-                int y = (iconSize - height) / 2;
+            notification.Controls.Add(label);
 
-                g.DrawImage(image, x, y, width, height);
-            }
+            notification.Show();
 
-            IntPtr hIcon = squareBitmap.GetHicon();
-            return Icon.FromHandle(hIcon);
+            var timer = new System.Windows.Forms.Timer { Interval = 3000 };
+            timer.Tick += (s, e) =>
+            {
+                notification.Close();
+                timer.Stop();
+            };
+            timer.Start();
         }
     }
 }

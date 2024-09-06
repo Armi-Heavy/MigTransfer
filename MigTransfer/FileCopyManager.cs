@@ -1,8 +1,6 @@
 ﻿using MigTransfer;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -10,53 +8,23 @@ public class FileCopyManager
 {
     public event EventHandler? CopyCompleted;
 
-    private readonly Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new();
-    private bool isCopying;
     private readonly DriveSpaceManager driveSpaceManager;
-    private readonly Panel drivePanel;
-    private readonly DriveInfo driveInfo;
+    private readonly Panel activeDrivePanel;
+    private readonly DriveInfo activeDrive;
 
-    public bool IsCopying
-    {
-        get => isCopying;
-        internal set => isCopying = value;
-    }
-
-    public Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> CopyQueue => copyQueue;
-
-    public FileCopyManager(DriveSpaceManager driveSpaceManager, Panel drivePanel, DriveInfo driveInfo)
+    public FileCopyManager(DriveSpaceManager driveSpaceManager, Panel activeDrivePanel, DriveInfo activeDrive)
     {
         this.driveSpaceManager = driveSpaceManager;
-        this.drivePanel = drivePanel;
-        this.driveInfo = driveInfo;
+        this.activeDrivePanel = activeDrivePanel;
+        this.activeDrive = activeDrive;
     }
 
-    public void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
-    {
-        copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox));
-        if (!isCopying)
-        {
-            StartCopying();
-        }
-    }
-
-    private async void StartCopying()
-    {
-        IsCopying = true;
-        while (copyQueue.Count > 0)
-        {
-            var (sourceDirectory, destinationDirectory, progressBar, checkBox) = copyQueue.Dequeue();
-            await CopyFiles(sourceDirectory, destinationDirectory, progressBar, checkBox);
-        }
-        IsCopying = false;
-        CopyCompleted?.Invoke(this, EventArgs.Empty);
-    }
-
-    private async Task CopyFiles(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
+    public async void CopyFiles(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
     {
         var baseDirectoryName = Path.GetFileName(sourceDirectory);
         var baseDirectoryNameWithoutExtension = Path.GetFileNameWithoutExtension(sourceDirectory);
-        var switchFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ownCloud", "Switch", baseDirectoryName);
+        var switchFolderPath = GlobalSettings.SwitchFolderPath;
+        var parentDirectoryPath = Path.Combine(switchFolderPath, baseDirectoryName);
 
         var files = new[]
         {
@@ -67,7 +35,7 @@ public class FileCopyManager
             $"{baseDirectoryNameWithoutExtension}.xci"
         };
 
-        long totalSize = files.Sum(file => new FileInfo(Path.Combine(switchFolderPath, file)).Length);
+        long totalSize = files.Sum(file => new FileInfo(Path.Combine(parentDirectoryPath, file)).Length);
         var destinationFolder = Path.Combine(destinationDirectory, baseDirectoryName);
 
         if (!Directory.Exists(destinationFolder))
@@ -78,7 +46,7 @@ public class FileCopyManager
         long copiedSize = 0;
         foreach (var file in files)
         {
-            var sourceFilePath = Path.Combine(switchFolderPath, file);
+            var sourceFilePath = Path.Combine(parentDirectoryPath, file);
             var destFile = Path.Combine(destinationFolder, Path.GetFileName(file));
             try
             {
@@ -91,35 +59,19 @@ public class FileCopyManager
                     {
                         await destStream.WriteAsync(buffer, 0, bytesRead);
                         copiedSize += bytesRead;
-                        UpdateProgressBar(progressBar, (int)((double)copiedSize / totalSize * 100));
+                        progressBar.Invoke((MethodInvoker)(() => progressBar.Value = (int)((double)copiedSize / totalSize * 100)));
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al copiar el archivo '{sourceFilePath}': {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                UpdateCheckBox(checkBox, false);
+                checkBox.Invoke((MethodInvoker)(() => checkBox.Checked = false));
                 return;
             }
         }
-        UpdateProgressBar(progressBar, 100);
-        driveSpaceManager.UpdateDrivePanel(driveInfo, drivePanel); // Actualizar el texto del espacio disponible
+        progressBar.Invoke((MethodInvoker)(() => progressBar.Value = 100));
+        driveSpaceManager.UpdateDrivePanel(activeDrive, activeDrivePanel); // Actualizar el texto del espacio disponible
         CopyCompleted?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void UpdateProgressBar(ProgressBar progressBar, int value)
-    {
-        if (progressBar.IsHandleCreated)
-        {
-            progressBar.Invoke((MethodInvoker)(() => progressBar.Value = value));
-        }
-    }
-
-    private void UpdateCheckBox(CheckBox checkBox, bool isChecked)
-    {
-        if (checkBox.IsHandleCreated)
-        {
-            checkBox.Invoke((MethodInvoker)(() => checkBox.Checked = isChecked));
-        }
     }
 }

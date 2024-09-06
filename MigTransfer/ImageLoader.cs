@@ -10,7 +10,7 @@ namespace MigTransfer
     {
         public List<string> LoadImagePaths()
         {
-            var switchFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ownCloud", "Switch");
+            var switchFolderPath = GlobalSettings.SwitchFolderPath;
 
             if (!Directory.Exists(switchFolderPath))
                 return new List<string>();

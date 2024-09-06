@@ -17,14 +17,15 @@ namespace MigTransfer
         private Form1 form;
         private DriveSpaceManager driveSpaceManager;
         private bool fromComparison = false;
-        private bool isCopying = false; // Variable para rastrear si la copia está activa
+        private readonly CopyQueueManager copyQueueManager;
 
         public string ImagePath => imagePath; // Propiedad para acceder a imagePath
 
-        public ImageItem(string imagePath, Form1 form)
+        public ImageItem(string imagePath, Form1 form, CopyQueueManager copyQueueManager)
         {
             this.imagePath = imagePath;
             this.form = form;
+            this.copyQueueManager = copyQueueManager;
             this.driveSpaceManager = new DriveSpaceManager(form);
             InitializeComponents();
             _ = LoadImageAsync(imagePath); // Ignorar advertencia de método asincrónico sin await
@@ -62,9 +63,9 @@ namespace MigTransfer
 
             checkBox.BringToFront();
 
-            pictureBox.MouseEnter += (s, e) => checkBox.Visible = true;
+            pictureBox.MouseEnter += (s, e) => checkBox.Visible = false;
             pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
-            checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
+            checkBox.MouseEnter += (s, e) => checkBox.Visible = false;
             checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
 
             pictureBox.Click += (s, e) => ToggleCheckBox();
@@ -86,9 +87,6 @@ namespace MigTransfer
                     pictureBox.Image = ChangeImageBrightness(originalImage, -0.5f);
                     progressBar.Visible = true;
                     progressBar.BringToFront();
-                    checkBox.Enabled = false; // Bloquear el CheckBox
-                    pictureBox.Enabled = false; // Bloquear el PictureBox
-                    isCopying = true; // Marcar que la copia está activa
 
                     string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
                     if (directoryName == null)
@@ -100,15 +98,21 @@ namespace MigTransfer
 
                     string destinationDirectory = activeDrive.RootDirectory.FullName;
 
-                    FileCopyManager fileCopyManager = new FileCopyManager(driveSpaceManager, form.activeDrivePanel, activeDrive);
-                    fileCopyManager.CopyCompleted += (s, e) => OnCopyCompleted(activeDrive); // Suscribirse al evento de copia completada
-                    fileCopyManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
+                    copyQueueManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
+
+                    // Bloquear el CheckBox solo si su índice en la cola es 0
+                    if (copyQueueManager.GetQueueIndex(checkBox) == 0)
+                    {
+                        checkBox.Enabled = false;
+                        pictureBox.Enabled = false;
+                    }
                 }
                 else
                 {
-                    if (isCopying)
+                    // Permitir desmarcar si no es el primero en la cola
+                    if (copyQueueManager.GetQueueIndex(checkBox) == 0)
                     {
-                        checkBox.Checked = true; // No permitir desmarcar si la copia está activa
+                        checkBox.Checked = true; // No permitir desmarcar si es el primero en la cola
                         return;
                     }
 
@@ -145,17 +149,16 @@ namespace MigTransfer
 
                     // Restablecer fromComparison después de desmarcar
                     fromComparison = false;
+
+                    // Eliminar de la cola
+                    copyQueueManager.RemoveFromCopyQueue(checkBox);
                 }
             };
-
         }
 
         private void ToggleCheckBox()
         {
-            if (!isCopying)
-            {
-                checkBox.Checked = !checkBox.Checked;
-            }
+            checkBox.Checked = !checkBox.Checked;
         }
 
         private async Task LoadImageAsync(string imagePath)
@@ -173,7 +176,6 @@ namespace MigTransfer
                 MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
         public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
         {
             this.fromComparison = fromComparison;
@@ -188,7 +190,14 @@ namespace MigTransfer
             }
             else if (!isChecked)
             {
-                progressBar.Visible = false;
+                if (progressBar.InvokeRequired)
+                {
+                    progressBar.Invoke((MethodInvoker)(() => progressBar.Visible = false));
+                }
+                else
+                {
+                    progressBar.Visible = false;
+                }
                 pictureBox.Image = originalImage;
             }
             checkBox.CheckedChanged += CheckBox_CheckedChanged;
@@ -220,19 +229,6 @@ namespace MigTransfer
                 gfx.DrawImage(image, new Rectangle(0, 0, bmp.Width, bmp.Height), 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, imgAttributes);
             }
             return bmp;
-        }
-
-        private void OnCopyCompleted(DriveInfo activeDrive)
-        {
-            checkBox.Invoke((MethodInvoker)(() => checkBox.Enabled = true)); // Desbloquear el CheckBox
-            pictureBox.Invoke((MethodInvoker)(() => pictureBox.Enabled = true)); // Desbloquear el PictureBox
-            isCopying = false; // Marcar que la copia ha terminado
-
-            // Actualizar la barra de progreso y el texto del tamaño actual
-            driveSpaceManager.UpdateDrivePanel(activeDrive, form.activeDrivePanel);
-
-            // Mostrar la notificación
-            NotificationManager.ShowNotification(imagePath, Path.GetDirectoryName(imagePath), originalImage);
         }
     }
 }

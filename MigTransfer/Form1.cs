@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using MigTransfer;
 
 namespace MigTransfer
 {
@@ -15,7 +16,9 @@ namespace MigTransfer
         private DriveInfo activeDrive;
         public Panel activeDrivePanel; // Cambiar a public o internal
         private FileCopyManager fileCopyManager;
-        private TransferManager transferManager;
+        private DirectoryComparer directoryComparer;
+        private readonly UsbEventWatcher usbEventWatcher;
+        private readonly CopyQueueManager copyQueueManager;
 
         public event EventHandler? DriveSpaceUpdated;
 
@@ -24,11 +27,18 @@ namespace MigTransfer
             InitializeComponent();
             driveSpaceManager = new DriveSpaceManager(this);
             fileCopyManager = new FileCopyManager(driveSpaceManager, activeDrivePanel, GetActiveDrive());
-            transferManager = new TransferManager(fileCopyManager);
+            copyQueueManager = new CopyQueueManager(fileCopyManager);
+            directoryComparer = new DirectoryComparer(this);
+            usbEventWatcher = new UsbEventWatcher(flowLayoutPanel2, this);
             LoadImagesToFlowLayoutPanel();
             LoadExFatDrivesToFlowLayoutPanel();
             this.Resize += (s, e) => AdjustFlowLayoutPanelSizes();
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
+        }
+
+        public DriveInfo GetActiveDrive()
+        {
+            return activeDrive;
         }
 
         private void LoadImagesToFlowLayoutPanel()
@@ -38,7 +48,7 @@ namespace MigTransfer
             {
                 try
                 {
-                    flowLayoutPanel1.Controls.Add(new ImageItem(imagePath, this));
+                    flowLayoutPanel1.Controls.Add(new ImageItem(imagePath, this, copyQueueManager));
                 }
                 catch (Exception ex)
                 {
@@ -62,13 +72,21 @@ namespace MigTransfer
             }
         }
 
-        private void SetActiveDrive(DriveInfo drive, Panel panel)
+        public void SetActiveDrive(DriveInfo drive, Panel panel)
         {
             activeDrive = drive;
             activeDrivePanel?.Invoke((MethodInvoker)(() => activeDrivePanel.BorderStyle = BorderStyle.None));
             activeDrivePanel = panel;
             activeDrivePanel.BorderStyle = BorderStyle.FixedSingle;
             CompareAndMarkCheckBoxes();
+        }
+
+        public void UncheckAllItems()
+        {
+            foreach (var imageItem in flowLayoutPanel1.Controls.OfType<ImageItem>())
+            {
+                imageItem.SetCheckBoxChecked(false);
+            }
         }
 
         private void AdjustFlowLayoutPanelSizes()
@@ -79,46 +97,14 @@ namespace MigTransfer
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (!transferManager.IsClosing)
-            {
-                e.Cancel = true;
-                transferManager.VerifyAndCloseApplication(this);
-            }
-        }
-
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
             exFatDriveDetector.StopWatcher();
-            base.OnFormClosing(e);
+            usbEventWatcher.Stop();
+            Application.Exit(); // Asegurarse de que la aplicación se cierre completamente
         }
-
-        public DriveInfo GetActiveDrive() => activeDrive;
 
         public void CompareAndMarkCheckBoxes()
         {
-            if (activeDrive == null)
-            {
-                MessageBox.Show("Por favor, seleccione un dispositivo activo.", "Dispositivo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            var activeDriveFiles = Directory.GetFiles(activeDrive.RootDirectory.FullName, "*.*", SearchOption.AllDirectories);
-            var switchFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ownCloud", "Switch");
-
-            foreach (ImageItem imageItem in flowLayoutPanel1.Controls.OfType<ImageItem>())
-            {
-                var directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImagePath));
-                var switchFiles = Directory.GetFiles(Path.Combine(switchFolderPath, directoryName), "*.*", SearchOption.TopDirectoryOnly);
-
-                foreach (var switchFile in switchFiles)
-                {
-                    if (activeDriveFiles.Any(activeDriveFile => Path.GetFileName(activeDriveFile).Equals(Path.GetFileName(switchFile), StringComparison.OrdinalIgnoreCase)))
-                    {
-                        imageItem.SetCheckBoxChecked(true, true);
-                        break;
-                    }
-                }
-            }
+            directoryComparer.CompareAndMarkCheckBoxes();
         }
 
         public void UpdateDrivePanel(DriveInfo drive, Panel panel)

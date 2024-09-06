@@ -16,6 +16,11 @@ namespace MigTransfer
 
         public void UpdateDrivePanel(DriveInfo drive, Panel panel)
         {
+            if (panel == null || panel.Controls == null)
+            {
+                return; // Salir si el panel o sus controles son nulos
+            }
+
             var progressBar = panel.Controls.OfType<CustomProgressBar>().FirstOrDefault();
             var sizeLabel = panel.Controls.OfType<Label>().LastOrDefault();
 

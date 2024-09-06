@@ -1,17 +1,24 @@
 ﻿using System;
 using System.Management;
 using System.Windows.Forms;
+using System.IO;
+using System.Linq;
+using MigTransfer;
 
 public class UsbEventWatcher
 {
     private readonly ManagementEventWatcher insertWatcher;
     private readonly ManagementEventWatcher removeWatcher;
+    private readonly FlowLayoutPanel flowLayoutPanel;
+    private readonly ExFatDriveDetector exFatDriveDetector;
+    private readonly Form1 form;
 
-    public event EventHandler? UsbInserted;
-    public event EventHandler? UsbRemoved;
-
-    public UsbEventWatcher()
+    public UsbEventWatcher(FlowLayoutPanel flowLayoutPanel, Form1 form)
     {
+        this.flowLayoutPanel = flowLayoutPanel;
+        this.exFatDriveDetector = new ExFatDriveDetector();
+        this.form = form;
+
         try
         {
             insertWatcher = CreateWatcher("__InstanceCreationEvent", OnUsbInserted);
@@ -31,8 +38,34 @@ public class UsbEventWatcher
         return watcher;
     }
 
-    private void OnUsbInserted(object sender, EventArrivedEventArgs e) => UsbInserted?.Invoke(this, EventArgs.Empty);
-    private void OnUsbRemoved(object sender, EventArrivedEventArgs e) => UsbRemoved?.Invoke(this, EventArgs.Empty);
+    private void OnUsbInserted(object sender, EventArrivedEventArgs e)
+    {
+        UpdateExFatDrives();
+    }
+
+    private void OnUsbRemoved(object sender, EventArrivedEventArgs e)
+    {
+        UpdateExFatDrives();
+        form.Invoke((MethodInvoker)(() => form.UncheckAllItems()));
+    }
+
+    private void UpdateExFatDrives()
+    {
+        flowLayoutPanel.Invoke((MethodInvoker)(() =>
+        {
+            flowLayoutPanel.Controls.Clear();
+            foreach (var drive in exFatDriveDetector.GetExFatDrives())
+            {
+                var panel = exFatDriveDetector.CreateDrivePanel(drive, flowLayoutPanel.Width);
+                panel.Click += (s, e) => form.SetActiveDrive(drive, panel);
+                foreach (Control control in panel.Controls)
+                {
+                    control.Click += (s, e) => form.SetActiveDrive(drive, panel);
+                }
+                flowLayoutPanel.Controls.Add(panel);
+            }
+        }));
+    }
 
     public void Stop()
     {
