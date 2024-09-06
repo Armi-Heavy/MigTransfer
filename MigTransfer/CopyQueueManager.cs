@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-public class CopyQueueManager
+﻿public class CopyQueueManager
 {
     private Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new();
     private readonly FileCopyManager fileCopyManager;
@@ -77,5 +71,24 @@ public class CopyQueueManager
             }
         }
         return -1; // No encontrado
+    }
+
+    public bool HasPendingItems()
+    {
+        return copyQueue.Count > 0;
+    }
+
+    public void CancelAllCopies()
+    {
+        fileCopyManager.CancelCopy();
+        while (copyQueue.Count > 0)
+        {
+            var (_, _, _, checkBox) = copyQueue.Dequeue();
+            checkBox.Invoke((MethodInvoker)(() =>
+            {
+                checkBox.Checked = false;
+                checkBox.Enabled = true;
+            }));
+        }
     }
 }

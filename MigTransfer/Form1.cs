@@ -95,8 +95,31 @@ namespace MigTransfer
             flowLayoutPanel1.Height = flowLayoutPanel2.Height = this.ClientSize.Height - 20;
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private async void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (copyQueueManager.HasPendingItems())
+            {
+                var result = MessageBox.Show("Hay transferencias en curso. ¿Estás seguro de que deseas cerrar la aplicación?", "Confirmar cierre", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true; // Cancela el cierre de la aplicación
+                    return;
+                }
+                else
+                {
+                    copyQueueManager.CancelAllCopies(); // Cancela todas las copias en curso
+
+                    // Esperar un momento para asegurarse de que las copias se han cancelado
+                    await Task.Delay(3000);
+
+                    // Desmarcar los elementos y eliminar los archivos
+                    foreach (var imageItem in flowLayoutPanel1.Controls.OfType<ImageItem>())
+                    {
+                        imageItem.Invoke((MethodInvoker)(() => imageItem.SetCheckBoxChecked(false)));
+                    }
+                }
+            }
+
             exFatDriveDetector.StopWatcher();
             usbEventWatcher.Stop();
             Application.Exit(); // Asegurarse de que la aplicación se cierre completamente
