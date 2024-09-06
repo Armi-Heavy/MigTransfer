@@ -124,7 +124,7 @@ namespace MigTransfer
                     copyQueueManager.CancelAllCopies(); // Cancela todas las copias en curso
 
                     // Esperar un momento para asegurarse de que las copias se han cancelado
-                    await Task.Delay(3000);
+                    await Task.Delay(1000000);
 
                     // Desmarcar los elementos y eliminar los archivos
                     foreach (var imageItem in flowLayoutPanel1.Controls.OfType<ImageItem>())
