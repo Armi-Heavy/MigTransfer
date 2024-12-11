@@ -81,6 +81,10 @@ namespace MigTransfer
             activeDrivePanel?.Invoke((MethodInvoker)(() => activeDrivePanel.BorderStyle = BorderStyle.None));
             activeDrivePanel = panel;
             activeDrivePanel.BorderStyle = BorderStyle.FixedSingle;
+
+            // Llamar a la nueva funcionalidad para eliminar el archivo .nxindex
+            NxIndexManager.RemoveNxIndex(drive.RootDirectory.FullName);
+
             CompareAndMarkCheckBoxes();
         }
 
