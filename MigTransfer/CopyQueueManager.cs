@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 public class CopyQueueManager
 {
-    private Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)> copyQueue = new();
+    private Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox, PictureBox pictureBox)> copyQueue = new();
     private readonly FileCopyManager fileCopyManager;
     private bool isCopying;
 
@@ -17,7 +17,7 @@ public class CopyQueueManager
         this.fileCopyManager.CopyCompleted += OnCopyCompleted;
     }
 
-    public void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)
+    public void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox, PictureBox pictureBox)
     {
         long requiredSpace = CalculateRequiredSpace(sourceDirectory);
         long totalRequiredSpace = requiredSpace + CalculateTotalSpaceInQueue();
@@ -30,7 +30,8 @@ public class CopyQueueManager
             return;
         }
 
-        copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox));
+        // Añadir la tupla con el PictureBox a la cola
+        copyQueue.Enqueue((sourceDirectory, destinationDirectory, progressBar, checkBox, pictureBox));
         ReorderQueue();
         if (!isCopying)
         {
@@ -43,7 +44,7 @@ public class CopyQueueManager
         var item = copyQueue.FirstOrDefault(x => x.checkBox == checkBox);
         if (item != default)
         {
-            copyQueue = new Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)>(copyQueue.Where(x => x != item));
+            copyQueue = new Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox, PictureBox pictureBox)>(copyQueue.Where(x => x != item));
             ReorderQueue();
         }
     }
@@ -58,7 +59,7 @@ public class CopyQueueManager
     {
         if (copyQueue.Count > 0)
         {
-            var (sourceDirectory, destinationDirectory, progressBar, checkBox) = copyQueue.Peek();
+            var (sourceDirectory, destinationDirectory, progressBar, checkBox, pictureBox) = copyQueue.Peek();
             fileCopyManager.CopyFiles(sourceDirectory, destinationDirectory, progressBar, checkBox);
         }
         else
@@ -71,35 +72,22 @@ public class CopyQueueManager
     {
         if (copyQueue.Count > 0)
         {
-            var (_, _, progressBar, checkBox) = copyQueue.Dequeue();
+            var (_, _, progressBar, checkBox, pictureBox) = copyQueue.Dequeue();
 
-            // Desbloquear los controles
+            // Desbloquear el CheckBox
             checkBox.Invoke((MethodInvoker)(() =>
             {
                 checkBox.Enabled = true;
             }));
 
-            // Si hay un PictureBox asociado, restaurar la imagen
-            // y si la lógica requiere hacerlo, puedes manejarlo aquí.
-            var pictureBox = checkBox.Tag as PictureBox;  // Suponiendo que tienes el PictureBox en el Tag del CheckBox
-            if (pictureBox != null)
+            // Desbloquear el PictureBox
+            pictureBox.Invoke((MethodInvoker)(() =>
             {
-                pictureBox.Invoke((MethodInvoker)(() =>
-                {
-                    pictureBox.Image = null;  // O la imagen original si corresponde
-                }));
-            }
-
-            // Ocultar la barra de progreso si es necesario
-            progressBar.Invoke((MethodInvoker)(() =>
-            {
-                progressBar.Visible = false;
+                pictureBox.Enabled = true;
             }));
         }
-
         ProcessNextInQueue();
     }
-
 
     public int GetQueueIndex(CheckBox checkBox)
     {
@@ -118,17 +106,23 @@ public class CopyQueueManager
     {
         return copyQueue.Count > 0;
     }
-
     public void CancelAllCopies()
     {
         fileCopyManager.CancelCopy();
         while (copyQueue.Count > 0)
         {
-            var (_, _, _, checkBox) = copyQueue.Dequeue();
+            var (_, _, _, checkBox, pictureBox) = copyQueue.Dequeue();
+
             checkBox.Invoke((MethodInvoker)(() =>
             {
                 checkBox.Checked = false;
                 checkBox.Enabled = true;
+            }));
+
+            // Desbloquear el PictureBox
+            pictureBox.Invoke((MethodInvoker)(() =>
+            {
+                pictureBox.Enabled = true;
             }));
         }
     }
@@ -136,7 +130,7 @@ public class CopyQueueManager
     private void ReorderQueue()
     {
         var orderedQueue = copyQueue.OrderBy(item => Path.GetDirectoryName(item.sourceDirectory)).ThenBy(item => item.sourceDirectory).ToList();
-        copyQueue = new Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox)>(orderedQueue);
+        copyQueue = new Queue<(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox, PictureBox pictureBox)>(orderedQueue);
     }
 
     private long CalculateRequiredSpace(string sourceDirectory)

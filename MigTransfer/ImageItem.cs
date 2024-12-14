@@ -98,7 +98,7 @@ namespace MigTransfer
 
                     string destinationDirectory = activeDrive.RootDirectory.FullName;
 
-                    copyQueueManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox);
+                    copyQueueManager.AddToCopyQueue(directoryName, destinationDirectory, progressBar, checkBox, pictureBox);
 
                     // Bloquear el CheckBox solo si su índice en la cola es 0
                     if (copyQueueManager.GetQueueIndex(checkBox) == 0)
