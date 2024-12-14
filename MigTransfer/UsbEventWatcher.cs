@@ -2,7 +2,6 @@
 using System.Management;
 using System.Windows.Forms;
 using System.IO;
-using System.Linq;
 using MigTransfer;
 
 public class UsbEventWatcher
@@ -21,15 +20,18 @@ public class UsbEventWatcher
 
         try
         {
+            // Crear watchers para insertar y quitar dispositivos USB
             insertWatcher = CreateWatcher("__InstanceCreationEvent", OnUsbInserted);
             removeWatcher = CreateWatcher("__InstanceDeletionEvent", OnUsbRemoved);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al configurar los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // Si hay un error al crear los watchers, lo mostramos pero sin interrumpir la app
+            Console.WriteLine($"Error al configurar los watchers USB: {ex.Message}");
         }
     }
 
+    // Crear un watcher para detectar inserción o eliminación
     private ManagementEventWatcher CreateWatcher(string eventType, EventArrivedEventHandler handler)
     {
         var watcher = new ManagementEventWatcher(new WqlEventQuery($"SELECT * FROM {eventType} WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'"));
@@ -38,35 +40,50 @@ public class UsbEventWatcher
         return watcher;
     }
 
+    // Evento cuando se inserta un USB
     private void OnUsbInserted(object sender, EventArrivedEventArgs e)
     {
+        // Actualizar las unidades ExFAT disponibles
         UpdateExFatDrives();
     }
 
+    // Evento cuando se quita un USB
     private void OnUsbRemoved(object sender, EventArrivedEventArgs e)
     {
+        // Actualizar las unidades ExFAT disponibles sin mostrar mensaje
         UpdateExFatDrives();
-        form.Invoke((MethodInvoker)(() => form.UncheckAllItems()));
     }
 
+    // Actualiza la lista de unidades ExFAT en la interfaz
     private void UpdateExFatDrives()
     {
         flowLayoutPanel.Invoke((MethodInvoker)(() =>
         {
+            // Limpiar el flujo actual de dispositivos
             flowLayoutPanel.Controls.Clear();
-            foreach (var drive in exFatDriveDetector.GetExFatDrives())
+
+            // Obtener todas las unidades ExFAT disponibles
+            var drives = exFatDriveDetector.GetExFatDrives();
+
+            // Verificar si hay unidades ExFAT disponibles
+            if (drives.Any())
             {
-                var panel = exFatDriveDetector.CreateDrivePanel(drive, flowLayoutPanel.Width);
-                panel.Click += (s, e) => form.SetActiveDrive(drive, panel);
-                foreach (Control control in panel.Controls)
+                // Si hay unidades, agregarlas al flujo
+                foreach (var drive in drives)
                 {
-                    control.Click += (s, e) => form.SetActiveDrive(drive, panel);
+                    var panel = exFatDriveDetector.CreateDrivePanel(drive, flowLayoutPanel.Width);
+                    panel.Click += (s, e) => form.SetActiveDrive(drive, panel);
+                    foreach (Control control in panel.Controls)
+                    {
+                        control.Click += (s, e) => form.SetActiveDrive(drive, panel);
+                    }
+                    flowLayoutPanel.Controls.Add(panel);
                 }
-                flowLayoutPanel.Controls.Add(panel);
             }
         }));
     }
 
+    // Detener los watchers
     public void Stop()
     {
         try
@@ -76,7 +93,8 @@ public class UsbEventWatcher
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al detener los watchers USB: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // Si ocurre un error al detener, lo mostramos solo en consola
+            Console.WriteLine($"Error al detener los watchers USB: {ex.Message}");
         }
     }
 }

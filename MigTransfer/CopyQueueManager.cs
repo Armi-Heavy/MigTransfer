@@ -71,14 +71,35 @@ public class CopyQueueManager
     {
         if (copyQueue.Count > 0)
         {
-            var (_, _, _, checkBox) = copyQueue.Dequeue();
+            var (_, _, progressBar, checkBox) = copyQueue.Dequeue();
+
+            // Desbloquear los controles
             checkBox.Invoke((MethodInvoker)(() =>
             {
                 checkBox.Enabled = true;
             }));
+
+            // Si hay un PictureBox asociado, restaurar la imagen
+            // y si la lógica requiere hacerlo, puedes manejarlo aquí.
+            var pictureBox = checkBox.Tag as PictureBox;  // Suponiendo que tienes el PictureBox en el Tag del CheckBox
+            if (pictureBox != null)
+            {
+                pictureBox.Invoke((MethodInvoker)(() =>
+                {
+                    pictureBox.Image = null;  // O la imagen original si corresponde
+                }));
+            }
+
+            // Ocultar la barra de progreso si es necesario
+            progressBar.Invoke((MethodInvoker)(() =>
+            {
+                progressBar.Visible = false;
+            }));
         }
+
         ProcessNextInQueue();
     }
+
 
     public int GetQueueIndex(CheckBox checkBox)
     {
