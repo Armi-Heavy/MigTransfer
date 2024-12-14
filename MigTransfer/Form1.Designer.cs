@@ -34,6 +34,8 @@
             flowLayoutPanel3 = new FlowLayoutPanel();
             label1 = new Label();
             textBox1 = new TextBox();
+            label2 = new Label();
+            lblTotalGames = new Label();
             flowLayoutPanel3.SuspendLayout();
             SuspendLayout();
             // 
@@ -60,6 +62,8 @@
             flowLayoutPanel3.BackColor = SystemColors.Control;
             flowLayoutPanel3.Controls.Add(label1);
             flowLayoutPanel3.Controls.Add(textBox1);
+            flowLayoutPanel3.Controls.Add(label2);
+            flowLayoutPanel3.Controls.Add(lblTotalGames);
             flowLayoutPanel3.Location = new Point(1, 0);
             flowLayoutPanel3.Name = "flowLayoutPanel3";
             flowLayoutPanel3.Size = new Size(1097, 39);
@@ -79,8 +83,27 @@
             textBox1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             textBox1.Location = new Point(102, 3);
             textBox1.Name = "textBox1";
-            textBox1.Size = new Size(949, 31);
+            textBox1.Size = new Size(750, 31);
             textBox1.TabIndex = 0;
+            // 
+            // label2
+            // 
+            label2.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            label2.AutoSize = true;
+            label2.Location = new Point(858, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(113, 25);
+            label2.TabIndex = 1;
+            label2.Text = "Total Juegos:";
+            label2.TextAlign = ContentAlignment.MiddleCenter;
+            // 
+            // lblTotalGames
+            // 
+            lblTotalGames.AutoSize = true;
+            lblTotalGames.Location = new Point(977, 0);
+            lblTotalGames.Name = "lblTotalGames";
+            lblTotalGames.Size = new Size(0, 25);
+            lblTotalGames.TabIndex = 2;
             // 
             // Form1
             // 
@@ -105,5 +128,7 @@
         private FlowLayoutPanel flowLayoutPanel3;
         private TextBox textBox1;
         private Label label1;
+        private Label label2;
+        private Label lblTotalGames;
     }
 }

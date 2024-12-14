@@ -46,12 +46,18 @@ namespace MigTransfer
 
         private void LoadImagesToFlowLayoutPanel()
         {
+            // Obtener el número de directorios en la ruta de SwitchFolderPath
+            int numJuegos = CountDirectories(GlobalSettings.SwitchFolderPath);
+            lblTotalGames.Text = numJuegos.ToString(); // Mostrar el número de juegos al inicio
+
+            // Ahora cargamos las imágenes (esto sigue igual)
             var imagePaths = imageLoader.LoadImagePaths();
             foreach (var imagePath in imagePaths)
             {
                 try
                 {
-                    flowLayoutPanel1.Controls.Add(new ImageItem(imagePath, this, copyQueueManager));
+                    var imageItem = new ImageItem(imagePath, this, copyQueueManager);
+                    flowLayoutPanel1.Controls.Add(imageItem);
                 }
                 catch (Exception ex)
                 {
@@ -151,6 +157,9 @@ namespace MigTransfer
                 string directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImagePath)).ToLower();
                 imageItem.Visible = directoryName.Contains(filterText);
             }
+
+            // Actualiza el contador cada vez que se aplica el filtro
+            ActualizarTotalDeJuegos();
         }
 
         public void CompareAndMarkCheckBoxes()
@@ -166,6 +175,24 @@ namespace MigTransfer
         public void OnDriveSpaceUpdated()
         {
             DriveSpaceUpdated?.Invoke(this, EventArgs.Empty);
+        }
+
+        // Método para contar los directorios dentro de SwitchFolderPath
+        private int CountDirectories(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                return Directory.GetDirectories(path).Length; // Retorna el número de directorios
+            }
+            return 0; // Si la ruta no existe, retornamos 0
+        }
+
+        // Método para actualizar el total de juegos visibles
+        private void ActualizarTotalDeJuegos()
+        {
+            // Contar todos los elementos visibles en flowLayoutPanel1
+            var juegosVisibles = flowLayoutPanel1.Controls.OfType<ImageItem>().Where(item => item.Visible).ToList();
+            lblTotalGames.Text = juegosVisibles.Count.ToString(); // Actualizar el texto del contador
         }
     }
 }
