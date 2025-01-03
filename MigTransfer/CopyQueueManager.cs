@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -17,9 +18,9 @@ public class CopyQueueManager
         this.fileCopyManager.CopyCompleted += OnCopyCompleted;
     }
 
-    public void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox, PictureBox pictureBox)
+    public async void AddToCopyQueue(string sourceDirectory, string destinationDirectory, ProgressBar progressBar, CheckBox checkBox, PictureBox pictureBox)
     {
-        long requiredSpace = CalculateRequiredSpace(sourceDirectory);
+        long requiredSpace = CalculateRequiredSpace(sourceDirectory);  // Llamada sincrónica
         long totalRequiredSpace = requiredSpace + CalculateTotalSpaceInQueue();
         long availableSpace = GetAvailableSpace(destinationDirectory);
 
@@ -106,6 +107,7 @@ public class CopyQueueManager
     {
         return copyQueue.Count > 0;
     }
+
     public void CancelAllCopies()
     {
         fileCopyManager.CancelCopy();
@@ -137,8 +139,7 @@ public class CopyQueueManager
     {
         var baseDirectoryName = Path.GetFileName(sourceDirectory);
         var baseDirectoryNameWithoutExtension = Path.GetFileNameWithoutExtension(sourceDirectory);
-        var switchFolderPath = GlobalSettings.SwitchFolderPath;
-        var parentDirectoryPath = Path.Combine(switchFolderPath, baseDirectoryName);
+        var baseUrl = GlobalSettings.URL_base;  // URL base configurada
 
         var files = new[]
         {
@@ -149,8 +150,50 @@ public class CopyQueueManager
             $"{baseDirectoryNameWithoutExtension}.xci"
         };
 
-        long totalSize = files.Sum(file => new FileInfo(Path.Combine(parentDirectoryPath, file)).Length);
+        long totalSize = 0;
+
+        foreach (var file in files)
+        {
+            string fileUrl = $"{baseUrl}{baseDirectoryName}.xci/{file}"; // Se construye la URL completa con baseUrl y el directorio
+
+            // Limpiar la URL usando la función CleanUrl de GlobalSettings
+            fileUrl = GlobalSettings.CleanUrl(fileUrl);
+
+            try
+            {
+                // Obtener el tamaño del archivo remoto desde la URL
+                totalSize += GetFileSizeFromUrl(fileUrl);  // Llamada sincrónica
+            }
+            catch (Exception ex)
+            {
+                // Manejo de excepciones si el archivo no se encuentra
+                Console.WriteLine($"Error al obtener el tamaño de {fileUrl}: {ex.Message}");
+                // Continuar con el siguiente archivo
+            }
+        }
+
         return totalSize;
+    }
+
+    private long GetFileSizeFromUrl(string fileUrl)
+    {
+        using (var client = new WebClient())
+        {
+            try
+            {
+                // Realiza una solicitud HEAD para obtener los metadatos
+                client.OpenRead(fileUrl); // Esto abre el archivo remoto
+
+                // Usamos el tamaño del archivo de la cabecera de la respuesta
+                long fileSize = long.Parse(client.ResponseHeaders["Content-Length"]);
+                return fileSize;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al obtener el tamaño de {fileUrl}: {ex.Message}");
+                return 0;  // Si ocurre un error, consideramos que el tamaño es 0
+            }
+        }
     }
 
     private long CalculateTotalSpaceInQueue()
@@ -158,7 +201,7 @@ public class CopyQueueManager
         long totalSize = 0;
         foreach (var item in copyQueue)
         {
-            totalSize += CalculateRequiredSpace(item.sourceDirectory);
+            totalSize += CalculateRequiredSpace(item.sourceDirectory);  // Mantén la llamada sincrónica a CalculateRequiredSpace
         }
         return totalSize;
     }

@@ -15,4 +15,18 @@ public static class GlobalSettings
 
     //HTTP Configuration
     public static readonly string URL_base = "http://armiche.tplinkdns.com:9000/";
+
+    // Función para limpiar la URL
+    public static string CleanUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return url;
+
+        // Primero decodificamos la URL para asegurarnos de que cualquier carácter codificado esté en su forma original.
+        string decodedUrl = Uri.UnescapeDataString(url);
+
+        // Reemplazar espacios por %20 y &amp por &
+        string cleanedUrl = decodedUrl.Replace(" ", "%20").Replace("&amp;", "&");
+
+        return cleanedUrl;
+    }
 }
