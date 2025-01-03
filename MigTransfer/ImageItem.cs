@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -12,23 +13,23 @@ namespace MigTransfer
         private PictureBox pictureBox = null!;
         private CheckBox checkBox = null!;
         private ProgressBar progressBar = null!;
-        private Image? originalImage; // Permitir valores NULL
-        private string imagePath;
+        private Image? originalImage;
+        private string imageUrl; // Adaptación para URL
         private Form1 form;
         private DriveSpaceManager driveSpaceManager;
         private bool fromComparison = false;
         private readonly CopyQueueManager copyQueueManager;
 
-        public string ImagePath => imagePath; // Propiedad para acceder a imagePath
+        public string ImageUrl => imageUrl; // Propiedad para acceder a imageUrl
 
-        public ImageItem(string imagePath, Form1 form, CopyQueueManager copyQueueManager)
+        public ImageItem(string imageUrl, Form1 form, CopyQueueManager copyQueueManager)
         {
-            this.imagePath = imagePath;
+            this.imageUrl = imageUrl;
             this.form = form;
             this.copyQueueManager = copyQueueManager;
             this.driveSpaceManager = new DriveSpaceManager(form);
             InitializeComponents();
-            _ = LoadImageAsync(imagePath); // Ignorar advertencia de método asincrónico sin await
+            _ = LoadImageAsync(imageUrl); // Cargar imagen asincrónicamente
         }
 
         private void InitializeComponents()
@@ -63,9 +64,9 @@ namespace MigTransfer
 
             checkBox.BringToFront();
 
-            pictureBox.MouseEnter += (s, e) => checkBox.Visible = false;
+            pictureBox.MouseEnter += (s, e) => checkBox.Visible = true;
             pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
-            checkBox.MouseEnter += (s, e) => checkBox.Visible = false;
+            checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
             checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
 
             pictureBox.Click += (s, e) => ToggleCheckBox();
@@ -88,7 +89,7 @@ namespace MigTransfer
                     progressBar.Visible = true;
                     progressBar.BringToFront();
 
-                    string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                    string? directoryName = Path.GetFileName(Path.GetDirectoryName(imageUrl));
                     if (directoryName == null)
                     {
                         MessageBox.Show("Error al obtener el nombre del directorio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -122,7 +123,7 @@ namespace MigTransfer
                     DriveInfo? activeDrive = form.GetActiveDrive();
                     if (activeDrive != null)
                     {
-                        string? directoryName = Path.GetFileName(Path.GetDirectoryName(imagePath));
+                        string? directoryName = Path.GetFileName(Path.GetDirectoryName(imageUrl));
                         if (directoryName == null)
                         {
                             MessageBox.Show("Error al obtener el nombre del directorio.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -143,14 +144,10 @@ namespace MigTransfer
                             }
                         }
 
-                        // Actualizar la barra de progreso y el texto del tamaño actual
                         driveSpaceManager.UpdateDrivePanel(activeDrive, form.activeDrivePanel);
                     }
 
-                    // Restablecer fromComparison después de desmarcar
                     fromComparison = false;
-
-                    // Eliminar de la cola
                     copyQueueManager.RemoveFromCopyQueue(checkBox);
                 }
             };
@@ -161,21 +158,23 @@ namespace MigTransfer
             checkBox.Checked = !checkBox.Checked;
         }
 
-        private async Task LoadImageAsync(string imagePath)
+        private async Task LoadImageAsync(string imageUrl)
         {
             try
             {
-                using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
-                {
-                    originalImage = await Task.Run(() => Image.FromStream(stream)); // Usar await Task.Run para ejecutar en segundo plano
-                }
+                using var httpClient = new HttpClient();
+                var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
+                using var ms = new MemoryStream(imageBytes);
+                originalImage = Image.FromStream(ms);
                 pictureBox.Image = originalImage;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error al cargar la imagen desde la URL: {imageUrl}\n{ex.Message}",
+                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         public void SetCheckBoxChecked(bool isChecked, bool fromComparison = false)
         {
             this.fromComparison = fromComparison;

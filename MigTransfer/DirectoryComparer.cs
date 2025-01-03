@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MigTransfer
@@ -27,15 +29,32 @@ namespace MigTransfer
 
             foreach (ImageItem imageItem in form.Controls.OfType<FlowLayoutPanel>().FirstOrDefault(p => p.Name == "flowLayoutPanel1").Controls.OfType<ImageItem>())
             {
-                var directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImagePath));
-                var switchFiles = Directory.GetFiles(Path.Combine(switchFolderPath, directoryName), "*.*", SearchOption.TopDirectoryOnly);
+                // Obtener el nombre del directorio desde la ruta de la imagen, que ahora proviene de ImageUrl
+                var directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImageUrl));
 
-                foreach (var switchFile in switchFiles)
+                // Formar la ruta local para el directorio correspondiente al servidor
+                string localDirectoryPath = Path.Combine(form.GetActiveDrive().RootDirectory.FullName, directoryName);
+
+                // Verificar si el directorio existe en el disco externo
+                bool directoryExistsOnDrive = Directory.Exists(localDirectoryPath);
+
+                if (directoryExistsOnDrive)
                 {
-                    if (activeDriveFiles.Any(activeDriveFile => Path.GetFileName(activeDriveFile).Equals(Path.GetFileName(switchFile), StringComparison.OrdinalIgnoreCase)))
+                    // Si el directorio existe en el disco externo, marcar el checkbox
+                    imageItem.SetCheckBoxChecked(true, true);
+                }
+                else
+                {
+                    // Si el directorio no existe en el disco externo, proceder con la comparación en el servidor HTTP
+                    var switchFiles = Directory.GetFiles(Path.Combine(switchFolderPath, directoryName), "*.*", SearchOption.TopDirectoryOnly);
+
+                    foreach (var switchFile in switchFiles)
                     {
-                        imageItem.SetCheckBoxChecked(true, true);
-                        break;
+                        if (activeDriveFiles.Any(activeDriveFile => Path.GetFileName(activeDriveFile).Equals(Path.GetFileName(switchFile), StringComparison.OrdinalIgnoreCase)))
+                        {
+                            imageItem.SetCheckBoxChecked(true, true);
+                            break;
+                        }
                     }
                 }
             }

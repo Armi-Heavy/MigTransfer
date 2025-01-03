@@ -44,25 +44,35 @@ namespace MigTransfer
             return activeDrive;
         }
 
-        private void LoadImagesToFlowLayoutPanel()
+        private async Task LoadImagesToFlowLayoutPanel()
         {
-            // Obtener el número de directorios en la ruta de SwitchFolderPath
-            int numJuegos = CountDirectories(GlobalSettings.SwitchFolderPath);
-            lblTotalGames.Text = numJuegos.ToString(); // Mostrar el número de juegos al inicio
-
-            // Ahora cargamos las imágenes (esto sigue igual)
-            var imagePaths = imageLoader.LoadImagePaths();
-            foreach (var imagePath in imagePaths)
+            try
             {
-                try
+                // Obtener las URLs de las imágenes desde el servidor HTTP
+                var imageUrls = await imageLoader.LoadImageUrlsAsync();
+
+                // Actualizar el contador de juegos
+                lblTotalGames.Text = imageUrls.Count.ToString();
+
+                // Cargar las imágenes en el FlowLayoutPanel
+                foreach (var imageUrl in imageUrls)
                 {
-                    var imageItem = new ImageItem(imagePath, this, copyQueueManager);
-                    flowLayoutPanel1.Controls.Add(imageItem);
+                    try
+                    {
+                        var imageItem = new ImageItem(imageUrl, this, copyQueueManager);
+                        flowLayoutPanel1.Controls.Add(imageItem);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error al cargar la imagen desde la URL: {imageUrl}\n{ex.Message}",
+                                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error al cargar la imagen: {imagePath}\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al obtener las URLs de las imágenes: {ex.Message}",
+                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -154,7 +164,11 @@ namespace MigTransfer
             string filterText = textBox1.Text.ToLower();
             foreach (var imageItem in flowLayoutPanel1.Controls.OfType<ImageItem>())
             {
-                string directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImagePath)).ToLower();
+                // Extraer el nombre del "directorio" de la URL
+                Uri imageUri = new Uri(imageItem.ImageUrl);
+                string directoryName = Path.GetFileName(Path.GetDirectoryName(imageUri.LocalPath)).ToLower();
+
+                // Filtrar según el texto ingresado
                 imageItem.Visible = directoryName.Contains(filterText);
             }
 
