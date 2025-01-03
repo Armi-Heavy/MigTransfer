@@ -129,6 +129,15 @@ namespace MigTransfer
                             return;
                         }
 
+                        // Decodificar la URL correctamente
+                        directoryName = Uri.UnescapeDataString(directoryName);
+
+                        // Eliminar "cover.jpg" si está presente
+                        if (directoryName.EndsWith("cover.jpg", StringComparison.OrdinalIgnoreCase))
+                        {
+                            directoryName = directoryName.Substring(0, directoryName.Length - "cover.jpg".Length);
+                        }
+
                         string destinationDirectory = Path.Combine(activeDrive.RootDirectory.FullName, directoryName);
 
                         if (Directory.Exists(destinationDirectory))

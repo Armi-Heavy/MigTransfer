@@ -32,6 +32,15 @@ namespace MigTransfer
                 // Obtener el nombre del directorio desde la ruta de la imagen, que ahora proviene de ImageUrl
                 var directoryName = Path.GetFileName(Path.GetDirectoryName(imageItem.ImageUrl));
 
+                // Decodificar la URL correctamente para que no tenga codificación innecesaria
+                directoryName = Uri.UnescapeDataString(directoryName); // Decodifica la URL
+
+                // Eliminar "cover.jpg" si está presente al final del nombre del directorio
+                if (directoryName.EndsWith("cover.jpg", StringComparison.OrdinalIgnoreCase))
+                {
+                    directoryName = directoryName.Substring(0, directoryName.Length - "cover.jpg".Length);
+                }
+
                 // Formar la ruta local para el directorio correspondiente al servidor
                 string localDirectoryPath = Path.Combine(form.GetActiveDrive().RootDirectory.FullName, directoryName);
 
