@@ -47,7 +47,7 @@ namespace MigTransfer
             {
                 Location = new Point(5, 5),
                 AutoSize = true,
-                Visible = false
+                Visible = false // Mantenerlo invisible
             };
 
             progressBar = new ProgressBar
@@ -64,10 +64,9 @@ namespace MigTransfer
 
             checkBox.BringToFront();
 
-            pictureBox.MouseEnter += (s, e) => checkBox.Visible = true;
-            pictureBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
-            checkBox.MouseEnter += (s, e) => checkBox.Visible = true;
-            checkBox.MouseLeave += (s, e) => { if (!checkBox.Checked) checkBox.Visible = false; };
+            // No se va a hacer visible el CheckBox al pasar el ratón
+            pictureBox.MouseEnter += (s, e) => { };
+            pictureBox.MouseLeave += (s, e) => { };
 
             pictureBox.Click += (s, e) => ToggleCheckBox();
 
